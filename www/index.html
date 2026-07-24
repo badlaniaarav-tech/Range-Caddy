@@ -273,6 +273,7 @@ function authErrorText(e){ const c=(e&&e.code)||'';
   if(c.includes('too-many-requests')) return 'Too many attempts — please wait a bit and try again.';
   if(c.includes('network')) return 'Network problem — check your connection.';
   return 'Something went wrong. Please try again.'; }
+function toggleRemember(){ state.authRemember = !(state.authRemember!==false); render(); }
 async function doAuth(){
   if(!cloudReady){ state.authError='Accounts are unavailable right now.'; render(); return; }
   const email=(document.getElementById('auth_email').value||'').trim();
@@ -280,6 +281,9 @@ async function doAuth(){
   if(!email || !pass){ state.authError='Enter your email and password.'; render(); return; }
   state.authEmail=email; state.authLoading=true; state.authError=null; render();
   try{
+    // "Remember me" → stay signed in after closing the browser; off → sign out when the tab/browser closes
+    const remember = state.authRemember!==false;
+    await fbAuth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
     if(state.authMode==='signup') await fbAuth.createUserWithEmailAndPassword(email, pass);
     else await fbAuth.signInWithEmailAndPassword(email, pass);
     /* onAuthStateChanged takes over from here */
@@ -624,6 +628,10 @@ function renderAuth(){
     </div>
     <label>Email</label><input type="email" id="auth_email" autocomplete="email" placeholder="you@example.com" value="${escapeHtml(state.authEmail||'')}">
     <label>Password</label><input type="password" id="auth_pass" autocomplete="${mode==='signup'?'new-password':'current-password'}" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')doAuth()">
+    <label style="display:flex;align-items:center;gap:9px;cursor:pointer;text-transform:none;letter-spacing:normal;font-size:13.5px;font-weight:600;margin-top:14px" onclick="event.preventDefault();toggleRemember()">
+      <span style="width:22px;height:22px;border-radius:6px;border:2px solid var(--fairway);background:${state.authRemember!==false?'var(--fairway)':'var(--paper)'};display:flex;align-items:center;justify-content:center;color:var(--chalk);font-size:13px;flex-shrink:0">${state.authRemember!==false?'✓':''}</span>
+      Remember me on this device
+    </label>
     ${state.authError?`<p style="color:var(--danger);font-size:13px;margin-top:10px">${escapeHtml(state.authError)}</p>`:''}
     <button class="btn" style="margin-top:16px" ${state.authLoading?'disabled':''} onclick="doAuth()">${state.authLoading?'Please wait…':(mode==='signup'?'Create Account':'Sign In')}</button>
     <p class="muted" style="text-align:center;margin-top:16px">${mode==='signup'?'Already have an account?':"Don't have an account yet?"} <button class="linkbtn" onclick="toggleAuthMode()">${mode==='signup'?'Sign in':'Create one'}</button></p>
