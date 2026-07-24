@@ -302,7 +302,14 @@ let state = { profile:null, ranking:null, completions:[], favorites:[], customDr
   suggestions:[], suggestionsLoading:false, todayMinutes:null,
   detailDrillId:null, detailFrom:'today', timer:null,
   detailGameId:null, addDrillOpen:false, addDrillArea:'all', gameFilter:'all', addGameOpen:false };
-let draftRanking=null, draftStart=null, draftStartOrder=null, draftMode=null, draftPhoto=null, dragIdx=null, dragStartIdx=null;
+let draftRanking=null, draftStart=null, draftStartOrder=null, draftMode=null, draftPhoto=null, draftFields=null, dragIdx=null, dragStartIdx=null;
+/* Keep whatever's typed in the survey text fields when a reorder/toggle re-renders the form. */
+function captureProfileFields(){
+  if(!document.getElementById('f_name')) return;
+  draftFields = draftFields || {};
+  const g=id=>{ const el=document.getElementById(id); return el?el.value:undefined; };
+  [['f_name','displayName'],['f_handicap','handicap'],['f_level','skillLevel'],['f_hand','hand'],['f_goal','goal'],['f_session','sessionLength']].forEach(([id,key])=>{ const v=g(id); if(v!==undefined) draftFields[key]=v; });
+}
 let timerInterval=null, sessionInterval=null;
 
 function allDrills(){ const sw=(state.swingWork||[]).map(s=>({id:'sw_'+s.id, area:s.area, name:s.name, description:s.description||'Personal swing work', setup:'Your own notes — from My Swing Work.', repsOrTime:'As needed', success:'Your own goal for this rep.', difficulty:'Personal', swingWork:true}));
@@ -533,16 +540,17 @@ async function useBuildPlan(){
   state.todayMinutes = state.planCache.minutes; state.buildSelection=new Set();
   setToast('Custom plan set for today'); switchView('today');
 }
-function moveRank(list, idx, dir){ const j=idx+dir; if(j<0||j>=list.length) return; [list[idx],list[j]]=[list[j],list[idx]]; render(); }
+function moveRank(list, idx, dir){ const j=idx+dir; if(j<0||j>=list.length) return; captureProfileFields(); [list[idx],list[j]]=[list[j],list[idx]]; render(); }
 function dragStart(idx){ dragIdx=idx; }
-function dropAt(idx){ if(dragIdx===null||dragIdx===idx) return; const item=draftRanking.splice(dragIdx,1)[0]; draftRanking.splice(idx,0,item); dragIdx=null; render(); }
+function dropAt(idx){ if(dragIdx===null||dragIdx===idx) return; captureProfileFields(); const item=draftRanking.splice(dragIdx,1)[0]; draftRanking.splice(idx,0,item); dragIdx=null; render(); }
 function dragStartOrder(idx){ dragStartIdx=idx; }
-function dropStartOrder(idx){ if(dragStartIdx===null||dragStartIdx===idx) return; const item=draftStartOrder.splice(dragStartIdx,1)[0]; draftStartOrder.splice(idx,0,item); dragStartIdx=null; render(); }
-function setDraftMode(m){ draftMode=m; render(); }
+function dropStartOrder(idx){ if(dragStartIdx===null||dragStartIdx===idx) return; captureProfileFields(); const item=draftStartOrder.splice(dragStartIdx,1)[0]; draftStartOrder.splice(idx,0,item); dragStartIdx=null; render(); }
+function setDraftMode(m){ captureProfileFields(); draftMode=m; render(); }
 
 function onPhotoSelected(evt){
   const file = evt.target.files && evt.target.files[0];
   if(!file) return;
+  captureProfileFields();
   const reader = new FileReader();
   reader.onload = ()=>{ draftPhoto = reader.result; render(); };
   reader.readAsDataURL(file);
@@ -566,7 +574,7 @@ async function saveProfileForm(){
   state.planCache = computePlan(todayStr(), sessionLength, '');
   await sSet('plan-cache', state.planCache);
   state.todayMinutes = sessionLength;
-  draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null;
+  draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null; draftFields=null;
   setToast('Saved'); switchView('today');
 }
 async function resetAll(){ if(!confirm('Erase all your Range Caddy data? This clears your account too and cannot be undone.')) return;
@@ -662,6 +670,8 @@ function renderProfileForm(isOnboarding){
   if(draftStartOrder===null) draftStartOrder = (p.startOrder && p.startOrder.length) ? p.startOrder.slice() : [p.startArea, ...AREAS.map(a=>a.id).filter(x=>x!==p.startArea)];
   if(draftMode===null) draftMode = p.sessionMode;
   if(draftPhoto===null) draftPhoto = p.photo || '';
+  if(draftFields===null) draftFields = {displayName:p.displayName||'', handicap:p.handicap||'', skillLevel:p.skillLevel||'beginner', hand:p.hand||'R', goal:p.goal||'', sessionLength:p.sessionLength||90};
+  const df = draftFields;
   const startRows = draftStartOrder.map((areaId,idx)=>`
     <div class="rankrow2" draggable="true" ondragstart="dragStartOrder(${idx})" ondragover="event.preventDefault()" ondrop="dropStartOrder(${idx})">
       <span class="rankbadge" style="background:var(--flag);color:var(--ink)">${idx+1}</span>
@@ -693,23 +703,23 @@ function renderProfileForm(isOnboarding){
         <button type="button" class="btn small secondary" onclick="document.getElementById('f_photo').click()">${draftPhoto?'Change photo':'Add photo'}</button>
       </div>
     </div>
-    <label>Name <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_name" placeholder="Your name" value="${escapeHtml(p.displayName)}">
-    <label>Handicap <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_handicap" placeholder="e.g. 14, 0, or Scratch" value="${escapeHtml(p.handicap)}">
+    <label>Name <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_name" placeholder="Your name" value="${escapeHtml(df.displayName)}">
+    <label>Handicap <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_handicap" placeholder="e.g. 14, 0, or Scratch" value="${escapeHtml(df.handicap)}">
     <p class="muted" style="margin-top:-3px;font-size:11.5px">We use this to set how hard your drills start.</p>
     <label>What's your level?</label>
     <select id="f_level">
-      <option value="beginner" ${(!p.skillLevel||p.skillLevel==='auto'||p.skillLevel==='beginner')?'selected':''}>Beginner</option>
-      <option value="intermediate" ${p.skillLevel==='intermediate'?'selected':''}>Intermediate</option>
-      <option value="advanced" ${p.skillLevel==='advanced'?'selected':''}>Advanced</option>
+      <option value="beginner" ${(!df.skillLevel||df.skillLevel==='auto'||df.skillLevel==='beginner')?'selected':''}>Beginner</option>
+      <option value="intermediate" ${df.skillLevel==='intermediate'?'selected':''}>Intermediate</option>
+      <option value="advanced" ${df.skillLevel==='advanced'?'selected':''}>Advanced</option>
     </select>
-    <label>Dominant hand</label><select id="f_hand"><option value="R" ${p.hand==='R'?'selected':''}>Right</option><option value="L" ${p.hand==='L'?'selected':''}>Left</option></select>
-    <label>Primary goal (optional)</label><textarea id="f_goal">${escapeHtml(p.goal)}</textarea>
+    <label>Dominant hand</label><select id="f_hand"><option value="R" ${df.hand==='R'?'selected':''}>Right</option><option value="L" ${df.hand==='L'?'selected':''}>Left</option></select>
+    <label>Primary goal (optional)</label><textarea id="f_goal">${escapeHtml(df.goal)}</textarea>
     <label>Session style</label>
     <div class="tabs" style="margin-bottom:0">
       <button type="button" class="tabbtn ${draftMode!=='untimed'?'active':''}" onclick="setDraftMode('timed')">Timed</button>
       <button type="button" class="tabbtn ${draftMode==='untimed'?'active':''}" onclick="setDraftMode('untimed')">Untimed</button>
     </div>
-    ${draftMode!=='untimed' ? `<label>Average session length (minutes)</label><input type="number" id="f_session" value="${p.sessionLength}" min="15" max="240" step="5">` : '<p class="muted" style="margin-top:8px">Drills run until you hit the success mark — no clock.</p>'}
+    ${draftMode!=='untimed' ? `<label>Average session length (minutes)</label><input type="number" id="f_session" value="${escapeHtml(df.sessionLength)}" min="15" max="240" step="5">` : '<p class="muted" style="margin-top:8px">Drills run until you hit the success mark — no clock.</p>'}
     <h2 style="margin-top:26px;font-size:20px">How do you like to start practice?</h2>
     <p class="muted" style="margin-top:2px;font-size:14px">Use the arrows to set the order you warm up through. Your plan follows this flow.</p>
     <div style="margin-top:10px">${startRows}</div>
@@ -1058,7 +1068,7 @@ if(cloudReady){
   state.view='loading'; render();
   fbAuth.onAuthStateChanged(async (user)=>{
     currentUser = user;
-    draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null;
+    draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null; draftFields=null;
     if(user){
       state.authLoading=false; state.authError=null;
       try{ await hydrateFromCloud(user.uid); }catch(e){ console.error('cloud hydrate failed', e); }
