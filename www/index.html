@@ -375,7 +375,7 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     let m = minutesPerArea[areaId];
     if(areaId===profile.startArea) m = Math.max(m,10);
     if(m<5) return;
-    let pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed), profile);
+    let pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed && !d.performance), profile);
     if(!pool.length) return;
     if(excludeIds && excludeIds.length){ const fresh=pool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) pool=fresh; }
     const favs = pool.filter(d=>favorites.includes(d.id));
@@ -385,10 +385,18 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     if(areaId==='putting' && areaId===order[0]) items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:5,fixed:true});
     chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:Math.max(5,Math.round(m/numDrills)), fixed:false}));
   });
-  if(!items.length){ const top=ranking[0]; const pool=allDrills().filter(d=>d.area===top&&!d.fixed); if(pool.length) items.push({key:top+'_'+pool[0].id,area:top,drillId:pool[0].id,minutes:total,fixed:false}); }
+  if(!items.length){ const top=ranking[0]; const pool=allDrills().filter(d=>d.area===top&&!d.fixed&&!d.performance); if(pool.length) items.push({key:top+'_'+pool[0].id,area:top,drillId:pool[0].id,minutes:total,fixed:false}); }
+  // performance drills — kept out of the main session, shown in the Performance section (weakest areas first, up to 3)
+  const perfDrills = [];
+  ranking.forEach(areaId=>{
+    if(perfDrills.length>=3) return;
+    let ppool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && d.performance && !d.fixed), profile);
+    if(excludeIds && excludeIds.length){ const fresh=ppool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) ppool=fresh; }
+    if(ppool.length){ const pick=ppool[Math.floor(rand()*ppool.length)]; perfDrills.push({key:'perf_'+pick.id, area:areaId, drillId:pick.id}); }
+  });
   const games = selectTodayGames(favorites, rand);
   (state.swingWork||[]).filter(s=>s.autoAdd).forEach(s=>{ items.push({key:'sw_'+s.id, area:s.area, drillId:'sw_'+s.id, minutes:10, fixed:false, swingWork:true}); });
-  return {date:dateStr, minutes:total, salt:salt||'', items, games, mode:'auto'};
+  return {date:dateStr, minutes:total, salt:salt||'', items, perfDrills, games, mode:'auto'};
 }
 function totalPracticeMinutes(){ const m=state.completions.reduce((s,c)=>s+(c.minutes||0),0); const h=Math.floor(m/60), r=m%60; return h?`${h}h ${r}m`:`${m}m`; }
 function computeStreak(){
@@ -482,7 +490,7 @@ function seenIdsForToday(){ return (state.seenToday && state.seenToday.date===to
 function markPlanSeen(plan){
   const t=todayStr();
   if(!state.seenToday || state.seenToday.date!==t) state.seenToday={date:t, ids:[]};
-  (plan.items||[]).forEach(it=>{ if(!it.fixed && !state.seenToday.ids.includes(it.drillId)) state.seenToday.ids.push(it.drillId); });
+  (plan.items||[]).concat(plan.perfDrills||[]).forEach(it=>{ if(!it.fixed && !state.seenToday.ids.includes(it.drillId)) state.seenToday.ids.push(it.drillId); });
   sSet('seen-today', state.seenToday);
 }
 function ensureTodayPlan(){
@@ -876,13 +884,22 @@ function renderToday(){
       <div onclick="openGame('${id}','today')" style="cursor:pointer"><strong>${escapeHtml(g.name)}${g.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(g.description)}</p></div>
       <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openGame('${id}','today')">Open game ›</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeGameFromToday('${id}')">Remove</button></div>
     </div>`; }).join('') || '<div class="empty">No games today — add one from the Games tab.</div>';
+  const perfDrillCards = (plan.perfDrills||[]).map(item=>{
+    const d = allDrills().find(x=>x.id===item.drillId); if(!d) return '';
+    const done = state.completions.some(c=>c.date===todayStr()&&c.drillId===item.drillId);
+    return `<div class="card">
+      <div class="rowline"><span class="eyebrow">${areaLabel(item.area)} · 🏆 Performance</span>
+        <span class="checkcircle ${done?'done':''}" onclick="toggleComplete('${item.drillId}')">${done?'✓':''}</span></div>
+      <div onclick="openDrill('${item.drillId}','today')" style="cursor:pointer"><strong>${escapeHtml(d.name)}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p></div>
+      <button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>
+    </div>`; }).join('');
   const gamePool = ALL_GAMES.filter(g=>!(plan.games||[]).includes(g.id));
   const addGamePanel = state.addGameOpen ? `
     <div class="card">
       <div class="rowline"><strong>Add a game to today</strong><button class="linkbtn" onclick="toggleAddGame()">Close</button></div>
       ${gamePool.map(g=>`<div class="rowline" style="padding:7px 0;border-top:1px solid var(--line)"><span style="font-size:13px">${escapeHtml(g.name)} <span class="muted">· ${escapeHtml(g.players)}</span></span><button class="btn small" onclick="addGameToToday('${g.id}')">Add</button></div>`).join('') || '<p class="muted">All games are already in today.</p>'}
     </div>` : `<button class="btn secondary" onclick="toggleAddGame()">+ Add a Game</button>`;
-  const gamesSection = `<div class="divider"></div>${gamesHeader}<p class="muted" style="margin-bottom:10px">Finish your session with competitive reps. Tap a game to open it and time your round.</p>${todayGames}${addGamePanel}`;
+  const gamesSection = `<div class="divider"></div>${gamesHeader}<p class="muted" style="margin-bottom:10px">Performance drills and competitive games to test what you've built. Tap any to open it.</p>${perfDrillCards}${todayGames}${addGamePanel}`;
 
   const dateLabel = new Date().toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
   return `<div class="rowline" style="align-items:center;gap:10px">
