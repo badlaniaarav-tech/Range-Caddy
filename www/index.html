@@ -51,7 +51,7 @@ p{margin:0 0 8px;line-height:1.45;}
 .btn.danger{background:var(--danger);}
 .btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
 label{display:block;font-size:11.5px;color:#000;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 5px;font-family:'Barlow Condensed',sans-serif;}
-input[type=text],input[type=number],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 11px;font-family:'Inter';font-size:14px;background:var(--paper);color:var(--ink);}
+input[type=text],input[type=number],input[type=email],input[type=password],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 11px;font-family:'Inter';font-size:14px;background:var(--paper);color:var(--ink);}
 textarea{resize:vertical;min-height:50px;}
 .chipwrap{display:flex;flex-wrap:wrap;gap:8px;}
 .chip{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--ink);font-family:'Inter';}
@@ -114,6 +114,7 @@ const ICON_LIBRARY = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none
 const ICON_TROPHY = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a2 2 0 0 0 0 4h1.5M17 5h3a2 2 0 0 1 0 4h-1.5"/><path d="M12 14v3"/><path d="M9 21h6"/><path d="M9.5 17h5l.5 4H9l.5-4Z"/></svg>`;
 const ICON_PERSON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>`;
 const ICON_CAMERA = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-2h7l1 2H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+const ICON_CALENDAR = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg>`;
 const areaLabel = id => (AREAS.find(a=>a.id===id)||{}).label || id;
 
 const DRILLS = [
@@ -231,7 +232,7 @@ async function sSet(key, val, shared){ try{ await window.storage.set(key, JSON.s
    Real email/password accounts so a golfer's data follows them across devices.
    localStorage stays the working cache; Firestore is the synced source of truth
    per signed-in user. Keys we sync (device-local 'shared:' keys are not synced). */
-const CLOUD_KEYS = ['profile','activity','plan-cache'];
+const CLOUD_KEYS = ['profile','activity','plan-cache','seen-today'];
 let fbAuth=null, fbDb=null, currentUser=null, cloudReady=false, cloudSyncTimer=null;
 try{
   firebase.initializeApp({
@@ -459,16 +460,26 @@ function setLibFilter(v){ state.libFilter=v; render(); }
 function setGameFilter(v){ state.gameFilter=v; render(); }
 function toggleExpand(key){ state.expanded.has(key)?state.expanded.delete(key):state.expanded.add(key); render(); }
 
+/* Drills already shown today (accumulates across regenerations) so "Regenerate"
+   gives fresh drills until an area's pool runs out; resets each new day. */
+function seenIdsForToday(){ return (state.seenToday && state.seenToday.date===todayStr()) ? state.seenToday.ids : []; }
+function markPlanSeen(plan){
+  const t=todayStr();
+  if(!state.seenToday || state.seenToday.date!==t) state.seenToday={date:t, ids:[]};
+  (plan.items||[]).forEach(it=>{ if(!it.fixed && !state.seenToday.ids.includes(it.drillId)) state.seenToday.ids.push(it.drillId); });
+  sSet('seen-today', state.seenToday);
+}
 function ensureTodayPlan(){
   if(!state.planCache || state.planCache.date!==todayStr()){
-    state.planCache = computePlan(todayStr(), state.profile.sessionLength, '');
+    state.planCache = computePlan(todayStr(), state.profile.sessionLength, '', seenIdsForToday());
+    markPlanSeen(state.planCache);
     sSet('plan-cache', state.planCache);
   }
   state.todayMinutes = state.planCache.minutes;
 }
 async function regenerateToday(){
-  const prevIds = state.planCache ? state.planCache.items.filter(i=>!i.fixed).map(i=>i.drillId) : [];
-  state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), prevIds);
+  state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), seenIdsForToday());
+  markPlanSeen(state.planCache);
   await sSet('plan-cache', state.planCache); render();
 }
 async function regenTodayWithMinutes(){ state.planCache = computePlan(todayStr(), state.todayMinutes, state.planCache?state.planCache.salt:''); await sSet('plan-cache', state.planCache); render(); }
@@ -833,7 +844,9 @@ function renderToday(){
     </div>` : `<button class="btn secondary" onclick="toggleAddGame()">+ Add a Game</button>`;
   const gamesSection = `<div class="divider"></div>${gamesHeader}<p class="muted" style="margin-bottom:10px">Finish your session with competitive reps. Tap a game to open it and time your round.</p>${todayGames}${addGamePanel}`;
 
-  return `<h1>Hey ${escapeHtml(state.profile.displayName)} 👋</h1>
+  const dateLabel = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+  return `<div class="rowline" style="color:#000;font-weight:800;font-size:13px;margin-bottom:3px;justify-content:flex-start;gap:7px;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.7)">${ICON_CALENDAR}<span>${dateLabel}</span></div>
+  <h1>Hey ${escapeHtml(state.profile.displayName)} 👋</h1>
   <div class="card"><div class="rowline"><span class="num" style="font-size:30px">${doneToday}/${plan.items.length}</span>
   <div style="text-align:right"><div>🔥 <strong>${streak}</strong> day streak</div><div class="muted" style="font-size:12px">${untimed?'Untimed session':plan.minutes+' min session'}</div></div></div>
   <p class="muted" style="margin-top:8px">Focus: ${focusAreas}</p></div>
@@ -1026,6 +1039,7 @@ async function init(){
     if(state.profile && !state.profile.startOrder){ const sa=state.profile.startArea||AREAS[0].id; state.profile.startOrder=[sa, ...AREAS.map(a=>a.id).filter(x=>x!==sa)]; } }
   state.completions=act.completions||[]; state.favorites=act.favorites||[]; state.customDrills=act.customDrills||[]; state.swingWork=act.swingWork||[];
   state.planCache=plan;
+  state.seenToday = await sGet('seen-today', null);
   state.view = state.profile ? 'today' : 'onboarding';
   render();
 }
