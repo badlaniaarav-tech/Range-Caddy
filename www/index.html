@@ -24,7 +24,7 @@ html,body{margin:0;}
 body{background:#EDEAE0;font-family:'Inter',sans-serif;color:var(--ink);}
 body::before{content:'';position:fixed;inset:0;z-index:-1;background:#EDEAE0 url('background.png') center/cover no-repeat;}
 #app{max-width:480px;margin:0 auto;min-height:100vh;background:transparent;display:flex;flex-direction:column;}
-#content{flex:1;padding:20px 18px 26px;overflow-y:auto;}
+#content{flex:1;padding:calc(env(safe-area-inset-top, 0px) + 32px) 18px 26px;overflow-y:auto;}
 .navbar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 14px 20px;background:transparent;}
 .navpill{display:flex;align-items:center;gap:2px;background:var(--ink);border-radius:999px;padding:6px;box-shadow:0 10px 28px rgba(0,0,0,.35);}
 .navbtn{background:none;border:none;cursor:pointer;padding:11px 17px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);}
@@ -862,10 +862,12 @@ function renderToday(){
     </div>` : `<button class="btn secondary" onclick="toggleAddGame()">+ Add a Game</button>`;
   const gamesSection = `<div class="divider"></div>${gamesHeader}<p class="muted" style="margin-bottom:10px">Finish your session with competitive reps. Tap a game to open it and time your round.</p>${todayGames}${addGamePanel}`;
 
-  const dateLabel = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
-  return `<div class="rowline" style="color:#000;font-weight:800;font-size:13px;margin-bottom:3px;justify-content:flex-start;gap:7px;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.7)">${ICON_CALENDAR}<span>${dateLabel}</span></div>
-  <h1>Hey ${escapeHtml(state.profile.displayName)} 👋</h1>
-  <div class="card"><div class="rowline"><span class="num" style="font-size:30px">${doneToday}/${plan.items.length}</span>
+  const dateLabel = new Date().toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+  return `<div class="rowline" style="align-items:center;gap:10px">
+    <h1 style="margin:0">Hey ${escapeHtml(state.profile.displayName)} 👋</h1>
+    <span style="display:flex;align-items:center;gap:6px;color:#000;font-weight:800;font-size:12.5px;white-space:nowrap;flex-shrink:0;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.7)">${ICON_CALENDAR}${dateLabel}</span>
+  </div>
+  <div class="card" style="margin-top:8px"><div class="rowline"><span class="num" style="font-size:30px">${doneToday}/${plan.items.length}</span>
   <div style="text-align:right"><div>🔥 <strong>${streak}</strong> day streak</div><div class="muted" style="font-size:12px">${untimed?'Untimed session':plan.minutes+' min session'}</div></div></div>
   <p class="muted" style="margin-top:8px">Focus: ${focusAreas}</p></div>
   ${timeCard}${sessionHeader}${cards}${addPanel}${gamesSection}`;
