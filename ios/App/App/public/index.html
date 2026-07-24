@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range Caddy</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+:root{--ink:#16281D;--fairway:#2F5233;--fairway-light:#4C7A52;--chalk:#F6F4EC;--paper:#FFFFFF;--flag:#C99A4B;--flag-dark:#A67B33;--slate:#3F6B45;--line:#E1DDD0;--danger:#B3462C;}
+*{box-sizing:border-box;}
+svg{vertical-align:middle;flex-shrink:0;}
+html,body{margin:0;}
+body{background:#EDEAE0 url('background.png') center/cover fixed no-repeat;font-family:'Inter',sans-serif;color:var(--ink);}
+#app{max-width:480px;margin:0 auto;min-height:100vh;background:transparent;display:flex;flex-direction:column;}
+#content{flex:1;padding:20px 18px 26px;overflow-y:auto;}
+.navbar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 14px 20px;background:transparent;}
+.navpill{display:flex;align-items:center;gap:2px;background:var(--ink);border-radius:999px;padding:6px;box-shadow:0 10px 28px rgba(0,0,0,.35);}
+.navbtn{background:none;border:none;cursor:pointer;padding:11px 17px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);}
+.navbtn.active{background:rgba(255,255,255,.16);color:#fff;}
+.navicon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+.navavatarbtn{width:44px;height:44px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;background:var(--flag);color:var(--ink);box-shadow:0 10px 24px rgba(0,0,0,.3);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.navavatarbtn.active{border-color:var(--fairway);}
+.navavatarbtn img{width:100%;height:100%;object-fit:cover;display:block;}
+h1,h2,h3{font-family:'Inter',sans-serif;font-weight:900;letter-spacing:-0.01em;margin:0 0 4px;color:#000;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.7);}
+h1{font-size:25px;}
+h2{font-size:17px;}
+p{margin:0 0 8px;line-height:1.45;}
+.muted{color:#000;font-weight:600;font-size:13px;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.num{font-family:'JetBrains Mono',monospace;font-weight:600;}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:11px;margin-bottom:9px;}
+.card.focus{border-left:4px solid var(--flag);}
+.rowline{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.pill{display:inline-block;background:var(--fairway);color:var(--chalk);font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.perfbadge{display:inline-block;background:var(--flag);color:var(--ink);font-size:10.5px;font-weight:700;padding:2px 8px 2px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;white-space:nowrap;}
+.eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fairway);font-weight:600;}
+.btn{font-family:'Inter',sans-serif;font-weight:700;font-size:15px;background:var(--fairway);color:var(--chalk);border:none;border-radius:14px;padding:13px 16px;cursor:pointer;width:100%;}
+.btn:active{background:var(--fairway-light);}
+.btn.secondary{background:var(--paper);color:var(--fairway);border:1.5px solid var(--fairway);}
+.btn.danger{background:var(--danger);}
+.btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
+label{display:block;font-size:11.5px;color:#000;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 5px;font-family:'Barlow Condensed',sans-serif;}
+input[type=text],input[type=number],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 11px;font-family:'Inter';font-size:14px;background:var(--paper);color:var(--ink);}
+textarea{resize:vertical;min-height:50px;}
+.chipwrap{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--ink);font-family:'Inter';}
+.chip.active{background:var(--fairway);color:var(--chalk);border-color:var(--fairway);}
+.rankrow2{display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:10px 12px 10px 10px;margin-bottom:9px;box-shadow:0 2px 6px rgba(22,40,29,.08);}
+.rankbadge{width:30px;height:30px;border-radius:50%;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-weight:700;font-size:15px;flex-shrink:0;}
+.rankicon{width:36px;height:36px;border-radius:50%;background:var(--chalk);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.rankgrip{display:none;}
+.rankarrows{display:flex;gap:5px;flex-shrink:0;}
+.rankarrows button{width:38px;height:38px;border-radius:50%;border:none;background:var(--chalk);cursor:pointer;color:var(--fairway);font-size:15px;font-weight:700;box-shadow:inset 0 0 0 1.5px var(--line);transition:background .1s;}
+.rankarrows button:active{background:var(--fairway);color:var(--chalk);}
+.rankarrows button:disabled{opacity:.3;cursor:default;background:var(--chalk);color:var(--fairway);}
+.divider{border:none;border-top:1px dashed var(--line);margin:16px 0;}
+.starbtn{background:none;border:none;font-size:17px;cursor:pointer;color:var(--flag);}
+.tabs{display:flex;background:var(--line);border-radius:22px;padding:4px;gap:4px;margin-bottom:14px;}
+.tabbtn{flex:1;padding:10px;border-radius:18px;border:none;background:transparent;color:var(--slate);font-weight:600;font-size:13.5px;cursor:pointer;font-family:'Inter';}
+.tabbtn.active{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--chalk);padding:9px 18px;border-radius:20px;font-size:13px;z-index:50;}
+.empty{text-align:center;padding:28px 10px;color:var(--slate);}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--flag);color:var(--ink);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-weight:700;font-size:19px;flex-shrink:0;}
+.statsrow{display:flex;justify-content:space-around;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+.statnum{font-family:'Barlow Condensed';font-weight:700;font-size:20px;text-align:center;}
+.statlabel{font-size:11px;color:var(--slate);text-align:center;text-transform:uppercase;letter-spacing:.04em;}
+.inforow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
+.inforow:last-child{border-bottom:none;}
+.checkcircle{width:25px;height:25px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--chalk);font-size:13px;}
+.checkcircle.done{background:var(--fairway);border-color:var(--fairway);}
+.reps{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--fairway);font-weight:700;margin:5px 0;}
+.linkbtn{color:#000;font-size:13px;font-weight:800;cursor:pointer;background:none;border:none;padding:0;font-family:'Inter';text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.linkback{background:none;border:none;color:#000;font-weight:800;font-size:13px;cursor:pointer;padding:0;margin-bottom:10px;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="content"><div class="empty">Loading your bag…</div></div>
+  <div class="navbar" id="navbar"></div>
+</div>
+<script>
+/* ---------- data ---------- */
+const AREAS = [
+ {id:'driver_woods', label:'Driver / Woods'},{id:'long_irons', label:'Long Irons'},
+ {id:'mid_irons', label:'Mid Irons'},{id:'short_irons', label:'Short Irons'},
+ {id:'wedges_pitching', label:'Wedges / Pitching'},{id:'chipping', label:'Chipping'},
+ {id:'putting', label:'Putting'},{id:'bunker', label:'Bunker'}
+];
+const AREA_SHORT = {driver_woods:'Driver',long_irons:'Long irons',mid_irons:'Mid irons',short_irons:'Short irons',wedges_pitching:'Wedges',chipping:'Chipping',putting:'Putting',bunker:'Bunker'};
+const AREA_ICON = {
+  driver_woods:'🏌️',
+  long_irons:`<svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4" fill="var(--fairway)"/><path d="M12 11 L9 20 H15 Z" fill="var(--fairway)" opacity=".55"/><line x1="6" y1="20" x2="18" y2="20" stroke="var(--fairway)" stroke-width="2" stroke-linecap="round"/></svg>`,
+  mid_irons:`<svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="var(--chalk)" stroke="var(--ink)" stroke-width="1.5"/><circle cx="9" cy="9" r="1" fill="var(--ink)"/><circle cx="15" cy="9" r="1" fill="var(--ink)"/><circle cx="12" cy="12" r="1" fill="var(--ink)"/><circle cx="9" cy="15" r="1" fill="var(--ink)"/><circle cx="15" cy="15" r="1" fill="var(--ink)"/></svg>`,
+  short_irons:`<svg width="18" height="18" viewBox="0 0 24 24"><line x1="6" y1="21" x2="6" y2="4" stroke="var(--fairway)" stroke-width="2" stroke-linecap="round"/><path d="M6 4 L17 7 L6 10 Z" fill="var(--danger)"/></svg>`,
+  wedges_pitching:`<svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="var(--danger)"/><circle cx="12" cy="12" r="6" fill="var(--chalk)"/><circle cx="12" cy="12" r="3" fill="var(--danger)"/></svg>`,
+  chipping:`<svg width="18" height="18" viewBox="0 0 24 24"><path d="M4 18c2-1 4-1 6 0s4 1 6 0s4-1 4 0" stroke="var(--fairway)" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="9" cy="8" r="3" fill="var(--ink)"/><path d="M9 11 Q14 6 19 10" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="2 2" fill="none"/></svg>`,
+  putting:'⛳',
+  bunker:'🏖️'
+};
+const ICON_HOME = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4h4v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></svg>`;
+const ICON_LIBRARY = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>`;
+const ICON_TROPHY = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a2 2 0 0 0 0 4h1.5M17 5h3a2 2 0 0 1 0 4h-1.5"/><path d="M12 14v3"/><path d="M9 21h6"/><path d="M9.5 17h5l.5 4H9l.5-4Z"/></svg>`;
+const ICON_PERSON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>`;
+const ICON_CAMERA = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-2h7l1 2H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+const areaLabel = id => (AREAS.find(a=>a.id===id)||{}).label || id;
+
+const DRILLS = [
+{id:'putt_calibration',area:'putting',fixed:true,name:'Stroke Calibration',description:"Calibrate your putting stroke with a Visio putting mat, a putting mirror, or David Pelz's Putting Tutor.",setup:'Use a putting mirror, Visio putting mat, or Putting Tutor (lay a towel down first to protect the green).',repsOrTime:'5 min',success:'Consistent face angle and path at impact',difficulty:'Beginner'},
+{id:'p1',area:'putting',name:'4-6 Redemption',description:'Build pressure with a ring of short putts and one bail-out putt per corner.',setup:'Tees at 4 ft and 6 ft around the hole; add a 9 ft "redemption" tee at each corner.',repsOrTime:'1-2 balls per tee, work around the hole',success:'Clear every tee, using each redemption putt at most once',difficulty:'Intermediate'},
+{id:'p2',area:'putting',name:'3-5-7 Ladder',description:'Climb back from the hole only after proving you can make a short one.',setup:'Tees at 3, 5 and 7 ft.',repsOrTime:'2-3 makes in a row per distance before moving back',success:'2-3 in a row at each distance',difficulty:'Beginner'},
+{id:'p3',area:'putting',name:'16-Putt Gauntlet',description:'A volume short-putt test from four sides of the hole plus two longer pressure putts.',setup:'14 tees at 3-5 ft around the hole, plus two 8 ft putts.',repsOrTime:'1 ball per tee, 16 putts total',success:'Make 13 of 16',difficulty:'Advanced'},
+{id:'p4',area:'putting',name:'10-12-15 Redemption',description:'Mid-range putts where a good miss still counts for something.',setup:'Tees at 10, 12 and 15 ft at each corner.',repsOrTime:'4 putts total',success:'4 makes, no miss finishes more than 3 ft past the hole',difficulty:'Intermediate'},
+{id:'p5',area:'putting',name:'Lag Ladder',description:'Dial in speed control on long putts using a gate to land in.',setup:'Alignment stick 3 ft behind the cup; putt from 10, 20, 30, 40 ft.',repsOrTime:'3 putts per distance',success:'3 in a row finishing between the hole and the stick at each distance',difficulty:'Advanced'},
+{id:'p6',area:'putting',name:'4-5-6 Performance',performance:true,description:'A scored short-putt circuit to track as a baseline.',setup:'Tees at 4, 5 and 6 ft around the hole (4ft at each corner, 5ft behind each 4ft, 6ft at four tees).',repsOrTime:'3 balls per 4ft tee, 2 per 5ft tee, 1 per 6ft tee — 22 putts total',success:'Make as many of the 22 as possible; track and beat your best',difficulty:'Intermediate'},
+{id:'p7',area:'putting',name:'Closer',performance:true,description:'A strokes-gained style test that mimics finishing off a round.',setup:'One ball each from 9, 12, 15, 18, 21, 18, 15, 12, 9 ft.',repsOrTime:'9 putts',success:'Make at least 3 of 9 to gain strokes on the field',difficulty:'Advanced'},
+{id:'p8',area:'putting',name:'7-Ball Performance Game',performance:true,description:'Test how many you can make across a spread of distances.',setup:'Pick 7 different distances around a hole.',repsOrTime:'1 ball at each of the 7 distances',success:'Make as many as possible — tour average over multiple rounds is 4 of 7',difficulty:'Intermediate'},
+{id:'p9',area:'putting',name:'3-10ft Number Circuit',performance:true,description:'A random-order pressure loop that mimics never getting the same putt twice.',setup:'10 numbered tees (1-10) placed in random order at any distance from 3-8 ft around one hole.',repsOrTime:'Putt in numeric order 1 through 10',success:'Make all 10 in order; one redemption putt allowed at the tee you missed',difficulty:'Advanced'},
+{id:'p10',area:'putting',name:'3-6-9 In A Row',performance:true,description:'A make-everything line drill building confidence from three distances.',setup:'Set balls in a line at 3, 6 and 9 ft.',repsOrTime:'9 putts (3 from each distance)',success:'Make all 9 in a row',difficulty:'Advanced'},
+{id:'c1',area:'chipping',name:'Towel Landing',description:'Train your landing spot instead of the hole.',setup:'Lay a towel at your intended landing spot for each distance.',repsOrTime:'5 balls per landing spot',success:'3 of 5 land on the towel',difficulty:'Beginner'},
+{id:'c2',area:'chipping',name:'Up & Down Challenge',description:'Classic scrambling test from mixed lies.',setup:'Ten balls scattered around the green.',repsOrTime:'10 chips',success:'Get up and down 6+ times',difficulty:'Intermediate'},
+{id:'c3',area:'chipping',name:'Trajectory Control',description:'Prove you can flight it three ways to the same hole.',setup:'One target hole.',repsOrTime:'5 low, 5 medium, 5 high shots',success:'All three trajectories finish inside a consistent radius',difficulty:'Intermediate'},
+{id:'c4',area:'chipping',name:'One-Club Challenge',description:'Build shot-making touch with a single wedge.',setup:'One wedge, three different targets.',repsOrTime:'Low, medium and high shot to each target',success:'Land all three trajectories on each target',difficulty:'Advanced'},
+{id:'c5',area:'chipping',name:'Par 18',description:'Turn chipping into a scored 9-hole round.',setup:'Pick 9 different chip shots, each a par 2.',repsOrTime:'9 chips, 2 putts max per hole',success:'Beat your own par (18)',difficulty:'Intermediate'},
+{id:'c6',area:'chipping',name:'Must Makes',performance:true,description:'A volume chipping test — make a few out of many under fatigue.',setup:'Pick a hole about 20 ft in front of you; grab 20 balls.',repsOrTime:'20 chips',success:'Make at least 3 of 20 to finish',difficulty:'Intermediate'},
+{id:'c7',area:'chipping',name:'Low, Mid, High Up & Down',performance:true,description:'Prove you can flight it three ways and get up and down from each.',setup:'Pin about 30 ft / 10 yds away.',repsOrTime:'One low, one mid, one high chip',success:'Get all 3 up and down, in a row',difficulty:'Advanced'},
+{id:'c8',area:'chipping',name:'Chipping Ladder',performance:true,description:'Land the ball in progressively deeper zones and back down without a miss.',setup:'Place a club or alignment stick every 3 ft from 10 ft out to 22 ft.',repsOrTime:'Land a ball in every zone, going up and back down the ladder',success:'Complete the full ladder; any miss restarts you',difficulty:'Advanced'},
+{id:'w1',area:'wedges_pitching',name:'Yardage Ladder',description:'Build feel for controlling distance with one club.',setup:'Pick one wedge and 4-5 increasing yardages (e.g. 80-120 in 10yd steps).',repsOrTime:'1 ball per yardage, in order',success:'Complete the ladder without missing a yardage badly',difficulty:'Intermediate'},
+{id:'w2',area:'wedges_pitching',name:'Three Swings, One Club',description:'Learn three distances off one swing.',setup:'One wedge; half, three-quarter and full swing lengths.',repsOrTime:'5 balls per swing length',success:'Consistent, repeatable yardage gaps between the three lengths',difficulty:'Intermediate'},
+{id:'w3',area:'wedges_pitching',name:'Trajectory Windows',description:'Same yardage, three different ball flights.',setup:'One target yardage.',repsOrTime:'5 balls each at low, standard and high flight',success:'All three flights finish within your target radius',difficulty:'Advanced'},
+{id:'b1',area:'bunker',name:'Line Drill',description:'Groove a consistent entry point before you hit a ball for real.',setup:'Draw a line in the sand; take a practice swing brushing the same spot between shots.',repsOrTime:'10 shots, practice swing between each',success:'Consistent entry point and clean contact',difficulty:'Beginner'},
+{id:'b2',area:'bunker',name:'Leapfrog',description:'Build feel for speed and distance control out of sand.',setup:'Any bunker with room to vary distance.',repsOrTime:'Each shot must finish farther than the last',success:'Set a new personal-record distance streak',difficulty:'Intermediate'},
+{id:'b3',area:'bunker',name:'Club Comparison',description:'Feel how loft changes trajectory and spin from the same lie.',setup:'PW through your lob wedge, same lie and target.',repsOrTime:'3 balls per club',success:'Notice and describe the trajectory difference between clubs',difficulty:'Intermediate'},
+{id:'d1',area:'driver_woods',name:'Stock Shot Reps',description:'Repeat your stock shot shape until it is boring.',setup:'Pick one target line and shot shape.',repsOrTime:'10 balls',success:'7+ finish within your target shot shape',difficulty:'Beginner'},
+{id:'d2',area:'driver_woods',name:'Max Speed Block',description:'A focused block to train and measure clubhead speed.',setup:'Full warm-up first; driver only.',repsOrTime:'5-8 swings at effort, resting between',success:'Track best speed/carry and note the trend over time',difficulty:'Intermediate'},
+{id:'d3',area:'driver_woods',name:'Thrive for 5',description:'A pressure test that mimics needing to find fairways on the course.',setup:'Pick a realistic fairway target width.',repsOrTime:'Hit tee shots until you string 5 in a row',success:'5 consecutive tee shots that would find the fairway',difficulty:'Advanced'},
+{id:'d4',area:'driver_woods',name:'Fairway Wood Finder',description:'Build a flighted, controlled fairway wood you can trust off the deck or tee.',setup:'One fairway wood, one target.',repsOrTime:'10 balls',success:'Consistent, controlled trajectory and start line',difficulty:'Intermediate'},
+{id:'d5',area:'driver_woods',name:'Five-Shape Fairway',performance:true,description:'Shape the ball five ways and keep every one in play — real course variety.',setup:'Pick two pins and use the gap between them as your fairway.',repsOrTime:'5 balls: 1 low, 1 stock, 1 draw, 1 fade, 1 high',success:'All 5 finish in the fairway',difficulty:'Advanced'},
+{id:'li1',area:'long_irons',name:'Solid Stock Shot',description:'Prioritize center strike over distance.',setup:'One long iron, one target.',repsOrTime:'10 balls',success:'7+ centered strikes',difficulty:'Intermediate'},
+{id:'li2',area:'long_irons',name:'Tempo & Balance',description:'Slow the swing down to speed up your consistency.',setup:'Same club, focus purely on tempo.',repsOrTime:'10 swings, hold finish 3 seconds',success:'Balanced finish held for 3 seconds every swing',difficulty:'Beginner'},
+{id:'mi1',area:'mid_irons',name:'Stock Shot Consistency',description:'Track your strike pattern with your bread-and-butter club.',setup:'One mid iron, one target.',repsOrTime:'10 balls',success:'7+ centered strikes',difficulty:'Intermediate'},
+{id:'mi2',area:'mid_irons',name:'Tempo Checkpoint',description:'Same balance drill, mid-iron speed.',setup:'One mid iron.',repsOrTime:'10 swings, hold finish 3 seconds',success:'Balanced finish on every swing',difficulty:'Beginner'},
+{id:'si1',area:'short_irons',name:'Know Your Numbers',description:'Build a real yardage chart instead of guessing.',setup:'One short iron, 4-5 increasing yardages.',repsOrTime:'1 ball per yardage, log the carry',success:'Yardage log stays within a tight, repeatable range',difficulty:'Intermediate'},
+{id:'si2',area:'short_irons',name:'Miss Right, Miss Left',description:'Learn to control your miss instead of hoping for perfect.',setup:'Pick a flag; aim to miss on purpose.',repsOrTime:'3 balls starting right of the flag, 3 starting left',success:'Both intentional misses land inside your target radius',difficulty:'Advanced'},
+{id:'si3',area:'short_irons',name:'On-Course Routine',performance:true,description:'Practice like you play — commit to a shot shape and full routine on every ball.',setup:'Pick a specific pin as your target.',repsOrTime:'Full pre-shot routine on each ball, calling your shot shape out loud',success:'Every shot gets a complete routine as if you were on the course',difficulty:'Intermediate'},
+{id:'p11',area:'putting',name:'15-51ft Lag Ladder',performance:true,description:'A scored lag-putting ladder that rewards good speed even when you miss.',setup:'Alignment stick 3ft past the hole, coin 2ft in front. Start at 15ft, move back 3ft each round to 51ft.',repsOrTime:'1 putt every 3ft from 15 to 51ft',success:'Make = -1, finish between coin and stick = even, past the stick = +1. Goal: finish at even par or better',difficulty:'Advanced'},
+{id:'p12',area:'putting',name:'3-Point Read',performance:true,description:'Score your read, not just your stroke, by putting through a gate on your line.',setup:'From 15ft, read the putt and place 2 coins on your intended line for the ball to roll between.',repsOrTime:'3 balls per set',success:'+1 point each time a ball rolls through both coins, past the hole, and in. Goal: reach 6 points',difficulty:'Advanced'},
+{id:'p13',area:'putting',name:'Make Circuit 4-6-8',performance:true,description:'A make-percentage benchmark from three short distances around the hole.',setup:'Putt from all around the hole — never hit the same putt twice.',repsOrTime:'5 putts from 4ft, 5 from 6ft, 5 from 8ft',success:'Make 5/5 from 4ft, 4/5 from 6ft, 3/5 from 8ft',difficulty:'Advanced'},
+{id:'p14',area:'putting',name:'Gate Drill',description:'Groove a square putter face and start line with an old-school gate.',setup:'Place 2 tees just wider than your putter head, right where the ball starts.',repsOrTime:'10 putts through the gate',success:'Roll through the gate without touching a tee, every time',difficulty:'Beginner'},
+{id:'p15',area:'putting',name:'Start Line',description:'Prove your start line matches your read on a dead-straight putt.',setup:'Draw or lay a 3ft straight chalk/marker line for the ball to start and finish on.',repsOrTime:'10 putts',success:'Ball tracks the line the entire 3ft',difficulty:'Beginner'},
+{id:'p16',area:'putting',name:'Speed Ladder',description:'A one-ball speed-control test that gets harder every make.',setup:'Coin 2ft past the hole. Start at 8ft with one ball.',repsOrTime:'Move back 2ft after each make (or finish between hole and coin), up to 30ft — 12 putts if perfect',success:'Reach 30ft without a bad-speed miss',difficulty:'Advanced'},
+{id:'p17',area:'putting',name:'Center Tee Circle',description:'A no-miss precision drill hitting one target from every angle.',setup:'One tee in the center; 4 more tees in a 4ft circle around it.',repsOrTime:'Putt from each of the 4 outer tees at the center tee, once around',success:'Hit the center tee from all 4 spots without missing; a miss restarts the circuit',difficulty:'Advanced'},
+{id:'p18',area:'putting',name:'Pinwheel',description:'A 12-putt volume test across three short distances.',setup:'12 tees around the hole: 4 at 3ft, 4 at 6ft, 4 at 9ft.',repsOrTime:'12 putts, one per tee',success:'Make as many of the 12 as possible; track and beat your best',difficulty:'Intermediate'},
+{id:'p19',area:'putting',name:'10ft Circuit',description:'A pure make-percentage test from a single, tour-relevant distance.',setup:'8 tees at 10ft spaced around the hole.',repsOrTime:'8 putts, one per tee',success:'Make as many as possible; repeat and try to beat your previous score',difficulty:'Intermediate'},
+{id:'p20',area:'putting',name:'21 Putting Game',performance:true,description:'A scored lag-putting test that rewards tight speed over raw makes.',setup:'Walk out about 30ft from a hole with 5 balls.',repsOrTime:'5 putts',success:'Make = 5 pts, finishes inside a 2ft radius = 2 pts, outside 2ft = -2 pts. Goal: reach 21 points',difficulty:'Advanced'},
+{id:'c9',area:'chipping',name:'Two-Target Trajectories',description:'Prove you can flight two wedges three ways to two different targets.',setup:'Set 2 targets (Visio holes or playing cards). Use your 58° and 54°.',repsOrTime:'Low, mid and high chips with each wedge to each target',success:'Land every trajectory/wedge combo on both targets',difficulty:'Advanced'},
+{id:'c10',area:'chipping',name:'Bump & Run Circuit',description:'Build a repeatable bump-and-run with your whole wedge set.',setup:'Pick 3-4 different spots around the green; use all three wedges.',repsOrTime:'20 minutes',success:'Consistent landing spot and roll-out for each wedge from each spot',difficulty:'Intermediate'},
+{id:'c11',area:'chipping',name:'High Shot Reps',description:'Train the high, soft chip to different pins.',setup:'Pick 3-4 different spots, each with a different pin to hit high chips to.',repsOrTime:'5 balls per spot',success:'Consistent height and landing spot to each pin',difficulty:'Intermediate'},
+{id:'c12',area:'chipping',name:'Basic Chip Makes',description:'The simplest chipping drill there is — try to make it.',setup:'Any basic chip shot to a hole.',repsOrTime:'10 chips',success:'Track makes and beat your best',difficulty:'Beginner'},
+{id:'b4',area:'bunker',name:'Bunker Volume Session',description:'Build sand feel across a range of lies and shot types.',setup:'Find varied lies in the bunker.',repsOrTime:'20 minutes: high shots, chunk-and-runs, mixed lies',success:'Consistent contact and distance control across all lie types',difficulty:'Intermediate'},
+{id:'w4',area:'wedges_pitching',name:'50/70/90 Wedge Matrix',description:'Build three reliable scoring distances off the same connected motion.',setup:'One wedge, three yardages: 50, 70, 90.',repsOrTime:'5 balls per yardage',success:'Same tempo and connection at all 3 distances, tight yardage grouping',difficulty:'Intermediate'},
+{id:'w5',area:'wedges_pitching',name:'Flight Down',description:'Learn to take height off your wedge shots on demand.',setup:'All your wedges, one target.',repsOrTime:'5 balls per wedge',success:'Visibly lower launch angle than your stock flight, same distance control',difficulty:'Advanced'},
+{id:'mi3',area:'mid_irons',name:'Horizontal Ball Control',description:'Shape it both ways on command while still hitting the pin.',setup:'One target pin.',repsOrTime:'Alternate draws, cuts and straight shots at the pin',success:'All three shapes start and curve as intended, finishing near the pin',difficulty:'Advanced'},
+{id:'mi4',area:'mid_irons',name:'Vertical Ball Control',description:'Flight it up and down on command while still hitting the pin.',setup:'One target pin.',repsOrTime:'Alternate low, mid, high and stock shots at the pin',success:'All four flights land near the pin with clearly different heights',difficulty:'Advanced'},
+{id:'mi5',area:'mid_irons',name:'Full Ball Control',description:'Combine shape and flight control in the same session — full command of the ball.',setup:'One target pin.',repsOrTime:'Mix shot shapes (draw/cut/straight) with trajectories (low/mid/high/stock)',success:'Every combination finishes near the pin',difficulty:'Advanced'},
+{id:'mi6',area:'mid_irons',name:'Roll The Egg',description:'Keep the club on plane in the takeaway.',setup:"Place a second ball directly behind the one you're hitting.",repsOrTime:'10 takeaways',success:'Roll the second ball straight back without hitting it sideways',difficulty:'Beginner'},
+{id:'mi7',area:'mid_irons',name:'Towel Connection Drill',description:'Keep your upper and lower body connected through the swing.',setup:'Tuck a towel under both arms across your chest.',repsOrTime:'10 swings',success:'Towel stays in place through the whole swing',difficulty:'Beginner'},
+{id:'mi8',area:'mid_irons',name:'Pause At The Top',description:'Smooth out your tempo and stop rushing the transition.',setup:'Any iron.',repsOrTime:'10 swings, pause at least 1 second at the top before starting down',success:'A clean, unhurried transition on every swing',difficulty:'Beginner'},
+{id:'mi9',area:'mid_irons',name:'Iron Start Line Challenge',description:'Train one stock shot shape and tighten your dispersion.',setup:'Alignment stick on the ground as your start-line reference.',repsOrTime:'10 balls, one stock shape',success:'Start line matches the stick every time, no double-crosses',difficulty:'Intermediate'},
+{id:'d6',area:'driver_woods',name:'Driver Fairway Simulation',description:'Score every drive on execution, not just outcome, to build course-ready commitment.',setup:'Create a fairway window using two targets or alignment sticks.',repsOrTime:'9-18 simulated tee shots, full routine on each',success:'Track how many finish in the window or in a playable miss',difficulty:'Advanced'},
+{id:'p21',area:'putting',name:'30 Three-Footers',description:'A pure make-everything streak test from tap-in range.',setup:'One ball, one hole, 3ft away.',repsOrTime:'30 putts in a row',success:'Make all 30 without a miss; a miss resets the streak',difficulty:'Intermediate'},
+{id:'p22',area:'putting',name:'Lag Putting Quarters',description:'A landing-zone test for speed control across four distances.',setup:'Mark 4 quarters, 1ft apart, between you and the hole. Tees at 5, 10, 20 and 30ft.',repsOrTime:'1 putt per distance',success:'5 & 10ft finish in the first two quarters, 20ft in the 1st-3rd quarters, 30ft in the 1st-4th quarters',difficulty:'Advanced'},
+{id:'p23',area:'putting',name:'Two-Hole Putter-Length Ladder',description:'A back-and-forth lag drill that punishes long misses and rewards precision.',setup:'Pick 2 holes 30-40ft apart. Use 3 balls, putting from one hole to the other.',repsOrTime:'3 balls per leg, 3 round trips (there and back = 1 round)',success:'All 3 putts finish within a putter length; a make means the next putt is free, but any putt outside putter length resets that round',difficulty:'Advanced'},
+{id:'p24',area:'putting',name:'30 Putt Drill',performance:true,description:'A make-percentage benchmark across five mid-range putting distances.',setup:'5 putts each from 10, 12, 15, 17 and 20ft.',repsOrTime:'30 putts total',success:'Make at least 9 of 30',difficulty:'Intermediate'},
+{id:'c13',area:'chipping',name:'Chip Connection Towel Drill',description:'Keep your body connected through the chipping stroke.',setup:'Tuck a towel under both arms, wrapped across your chest.',repsOrTime:'10 chips',success:'Towel stays in place through every stroke',difficulty:'Beginner'},
+{id:'c14',area:'chipping',name:'Tight Lie vs Rough Rotation',description:'Learn to adjust technique on the fly between contrasting lies.',setup:'Find one tight/bare lie and one rough lie near the green.',repsOrTime:'Alternate lies every shot, 10 shots total',success:'Clean strike and consistent distance control from both lie types',difficulty:'Advanced'},
+{id:'c15',area:'chipping',name:'Five-Shot Chip Control',description:'Hit five different chip shots from the same spot to prove full command around the green.',setup:'Find a chip 10-15 yds away with a middle pin.',repsOrTime:'1 stock draw, 1 stock cut, 1 stock chip, 1 spin chip, 1 low runner — all from the same spot',success:'All five shots finish inside your target radius',difficulty:'Advanced'},
+{id:'li3',area:'long_irons',name:'Tee Strike Drill',description:'Train forward weight shift and ball-then-turf contact instead of scooping.',setup:'Place a tee in the ground just past the ball, one clubhead-length in front, on your target line.',repsOrTime:'10 balls',success:'Strike the ball first, then clip the tee on your follow-through, every time',difficulty:'Intermediate'},
+{id:'li4',area:'long_irons',name:'Distance Ladder',description:'Learn to control distance with the same long iron by varying backswing length and tempo, not effort.',setup:'Pick 3 targets at different distances with the same club (e.g. 150, 175, 200 yds).',repsOrTime:'3-5 balls per target, working through in order',success:'Land shots progressively closer to each target by adjusting swing length alone',difficulty:'Advanced'},
+{id:'b5',area:'bunker',name:'2x4 Bunker Drill',description:'Learn to use the bounce of the club instead of digging the leading edge into the sand.',setup:'Set up for a normal splash shot with an open clubface.',repsOrTime:'10 shots, focused purely on the club skimming through the sand',success:"The club's trailing edge contacts the sand first on every shot, no digging",difficulty:'Advanced'},
+{id:'b6',area:'bunker',name:'Foot Depth Drill',description:'Feel how digging your feet in deeper changes trajectory, spin and how much sand you take.',setup:'Hit the same shot 3 times: barely settled in, ankle-deep, and in between.',repsOrTime:'3 balls per foot depth',success:'Notice and describe how each depth changes ball flight and spin',difficulty:'Intermediate'},
+{id:'b7',area:'bunker',name:'9-Ball Up & Down',performance:true,description:'A scored bunker game that mimics real greenside pressure.',setup:'Drop 9 balls in varied bunker lies around the green.',repsOrTime:'9 up-and-down attempts, holing out every time',success:'Track how many of the 9 you get up and down; beat your best next time',difficulty:'Advanced'},
+{id:'si4',area:'short_irons',name:'Floatie Connection Drill',description:'Shorten and control your backswing while keeping the clubface square.',setup:'Tuck a pool floatie (or small pillow) under your back arm.',repsOrTime:'10 swings without dropping the floatie',success:'Floatie stays in place through the whole swing, with a square face at impact',difficulty:'Beginner'},
+{id:'si5',area:'short_irons',name:'Gate Strike Drill',description:'Groove a clean path and center-face contact on full short-iron swings.',setup:'Set 2 tees just wider than your clubhead, right where the ball sits.',repsOrTime:'10 balls through the gate',success:'Strike through without touching either tee, every time',difficulty:'Intermediate'},
+{id:'si6',area:'short_irons',name:'Mini-Swing Drill',description:'Build a compact, controlled short-iron motion with the wrists staying ahead of the clubhead.',setup:'Address the ball and swing only from waist-high to waist-high.',repsOrTime:'10 balls',success:'Crisp, ball-first contact on every mini-swing',difficulty:'Beginner'},
+{id:'d7',area:'driver_woods',name:'Path Gate Drill',description:'Train a repeatable swing path through the ball with the driver.',setup:'Set 2 alignment sticks a few feet in front of the ball, just wider than your clubhead, forming a gate.',repsOrTime:'10 drives',success:'Swing through the gate without touching either stick',difficulty:'Intermediate'},
+{id:'d8',area:'driver_woods',name:'New Target Every Shot',description:'Practice like you play by never hitting the same shot twice.',setup:'Pick a brand new target for every single drive — vary distance and shape.',repsOrTime:'10 drives, 10 different targets',success:'A real pre-shot routine and committed target on every swing, no autopilot reps',difficulty:'Intermediate'}
+];
+const GAMES = [
+{id:'g_decade',name:'Decade (AIFC Routine)',players:'Solo · On-course',description:'Play any 10 holes and commit fully to your pre-shot routine on every shot.',how:'Before each shot: Assess the lie and target, set your Intent, Feel the shot, then Commit and go — no second-guessing once you start. Track how many of the 10 you executed cleanly.'},
+{id:'g_worst',name:'Worst Ball',players:'Solo · On-course',description:'Hit two balls on every shot and always play the worse one.',how:'A brutal solo pressure test — great for exposing which shots actually hold up.'},
+{id:'g_best',name:'Best Ball Solo',players:'Solo · On-course',description:'Hit two balls on every shot and always play the better one.',how:'Builds confidence and lets you experiment with a second look at tough shots.'},
+{id:'g_par3',name:'Par 3 Day',players:'Solo · On-course',description:'Play every hole as if it were a par 3 from a fixed yardage.',how:'Pick one yardage (e.g. 150) and hit from there on every hole — pure iron and scoring practice.'},
+{id:'g_even',name:'Even or Better',players:'Solo · On-course',description:'See if you can keep your score at even par or better if birdies did not count.',how:'A mental-game test in managing bogeys and staying patient all round.'},
+{id:'g_3ball',name:'3-Ball Scramble',performance:true,players:'Solo · On-course',description:'A confidence-building scramble where you get up to three looks at every shot.',how:'On every shot, hit your first ball — keep it if you like it, or hit a second. You may then choose between those two. If you still don\'t like either, you can hit a third, but you must take that one. Play the whole round this way.'}
+];
+const PRACTICE_GAMES = [
+{id:'g_21',name:'21',performance:true,players:'2+',description:'A closest-to-the-pin chipping game played to 21 points.',how:'Each player chips (2 balls each) from a shared spot to the pin. Closest scores 2 points, second closest scores 1. A chip-in scores 5 points instead of the normal 2 — but the second-closest player still only scores 1. Rotate to a new spot each round. First to 21 (or over) wins.'},
+{id:'g_hurricane',name:'Hurricane',performance:true,players:'Solo',description:'A make-everything pressure test from short range.',how:'Place balls at every distance from 2 to 8 ft around the hole. Make every single one to clear the hurricane — miss and you start over.'}
+];
+const ALL_GAMES = GAMES.concat(PRACTICE_GAMES);
+function findGame(id){ return ALL_GAMES.find(g=>g.id===id); }
+
+/* ---------- storage helpers ---------- */
+async function sGet(key, fallback, shared){ try{ const r = await window.storage.get(key, !!shared); return r ? JSON.parse(r.value) : fallback; }catch(e){ return fallback; } }
+async function sSet(key, val, shared){ try{ await window.storage.set(key, JSON.stringify(val), !!shared); }catch(e){ console.error('storage failed', e); } }
+
+/* ---------- state ---------- */
+let state = { profile:null, ranking:null, completions:[], favorites:[], customDrills:[], swingWork:[],
+  planCache:null, view:'loading', libFilter:'all', toast:null,
+  swapMode:false, swapSelection:new Set(), gameSwapMode:false, gameSwapSelection:new Set(), expanded:new Set(), buildSelection:new Set(),
+  suggestions:[], suggestionsLoading:false, todayMinutes:null,
+  detailDrillId:null, detailFrom:'today', timer:null,
+  detailGameId:null, addDrillOpen:false, addDrillArea:'all', gameFilter:'all', addGameOpen:false };
+let draftRanking=null, draftStart=null, draftStartOrder=null, draftMode=null, draftPhoto=null, dragIdx=null, dragStartIdx=null;
+let timerInterval=null, sessionInterval=null;
+
+function allDrills(){ const sw=(state.swingWork||[]).map(s=>({id:'sw_'+s.id, area:s.area, name:s.name, description:s.description||'Personal swing work', setup:'Your own notes — from My Swing Work.', repsOrTime:'As needed', success:'Your own goal for this rep.', difficulty:'Personal', swingWork:true}));
+  return DRILLS.concat(state.customDrills).concat(sw); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const DIFF_RANK = {Beginner:0, Intermediate:1, Advanced:2};
+// base 0-2 tier from handicap number (lower handicap = higher tier)
+function handicapTier(hcp){ if(/scratch/i.test(String(hcp))) return 2; const n=parseFloat(String(hcp).replace(/[^\d.\-+]/g,'')); if(isNaN(n)) return 1; if(n<=8) return 2; if(n<=18) return 1; return 0; }
+// combine handicap, optional self-reported level, and easier/harder preference into a target tier
+function targetTier(profile){ if(!profile) return 1;
+  let t = handicapTier(profile.handicap);
+  if(profile.skillLevel && profile.skillLevel!=='auto'){ t = {beginner:0,intermediate:1,advanced:2}[profile.skillLevel]; }
+  if(profile.difficultyPref==='easier') t-=1; else if(profile.difficultyPref==='harder') t+=1;
+  return Math.max(0, Math.min(2, t));
+}
+// keep drills at/below the target tier; if none, fall back to closest
+function filterByDifficulty(pool, profile){ if(!pool.length) return pool; const t=targetTier(profile);
+  let ok = pool.filter(d=>(DIFF_RANK[d.difficulty]??1) <= t);
+  if(!ok.length) ok = pool.slice().sort((a,b)=>Math.abs((DIFF_RANK[a.difficulty]??1)-t)-Math.abs((DIFF_RANK[b.difficulty]??1)-t));
+  return ok;
+}
+
+async function persistActivity(){ await sSet('activity', {completions:state.completions, favorites:state.favorites, customDrills:state.customDrills, swingWork:state.swingWork}); }
+async function editCompletionTime(idx){ const cur=state.completions[idx]; if(!cur) return;
+  const v=prompt('Minutes for this entry (enter a smaller number to remove time):', cur.minutes); if(v===null) return;
+  const n=parseFloat(v); if(isNaN(n)||n<0) return;
+  if(n===0){ state.completions.splice(idx,1); } else { cur.minutes=n; cur.seconds=Math.round(n*60); }
+  await persistActivity(); render();
+}
+async function removeCompletionEntry(idx){ state.completions.splice(idx,1); await persistActivity(); render(); }
+async function persistProfile(){ await sSet('profile', {profile:state.profile, ranking:state.ranking}); }
+
+/* ---------- plan engine ---------- */
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=Math.imul(31,h)+s.charCodeAt(i)|0; } return h>>>0; }
+function mulberry32(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+function selectTodayGames(favorites, rand){
+  const pickPool = (pool)=>{ const fav=pool.filter(g=>favorites.includes(g.id)).map(g=>g.id); const rest=pool.filter(g=>!favorites.includes(g.id)).map(g=>g.id).sort(()=>rand()-0.5); return [...fav, ...rest]; };
+  const courseGame = pickPool(GAMES)[0];
+  const perfGames = pickPool(ALL_GAMES.filter(g=>g.performance && g.id!==courseGame)).slice(0,2);
+  return [courseGame, ...perfGames].filter(Boolean);
+}
+function computePlan(dateStr, minutes, salt, excludeIds){
+  const {ranking, profile, favorites} = state;
+  const total = minutes;
+  const n = ranking.length; const weights={}; let sumW=0;
+  ranking.forEach((a,idx)=>{ const w=n-idx; weights[a]=w; sumW+=w; });
+  const minutesPerArea={}; let allocated=0;
+  ranking.forEach(a=>{ const m=Math.round(total*weights[a]/sumW); minutesPerArea[a]=m; allocated+=m; });
+  minutesPerArea[ranking[0]] += (total-allocated);
+  const pref = profile.startOrder && profile.startOrder.length ? profile.startOrder : [profile.startArea];
+  const order = [...pref, ...ranking.filter(a=>!pref.includes(a))];
+  const rand = mulberry32(hashStr(dateStr+'|'+(salt||'')));
+  const items = [];
+  order.forEach(areaId=>{
+    let m = minutesPerArea[areaId];
+    if(areaId===profile.startArea) m = Math.max(m,10);
+    if(m<5) return;
+    let pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed), profile);
+    if(!pool.length) return;
+    if(excludeIds && excludeIds.length){ const fresh=pool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) pool=fresh; }
+    const favs = pool.filter(d=>favorites.includes(d.id));
+    const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
+    const numDrills = m>=20?2:1;
+    const chosen = [...favs, ...rest].slice(0,numDrills);
+    if(areaId==='putting' && areaId===order[0]) items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:5,fixed:true});
+    chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:Math.max(5,Math.round(m/numDrills)), fixed:false}));
+  });
+  if(!items.length){ const top=ranking[0]; const pool=allDrills().filter(d=>d.area===top&&!d.fixed); if(pool.length) items.push({key:top+'_'+pool[0].id,area:top,drillId:pool[0].id,minutes:total,fixed:false}); }
+  const games = selectTodayGames(favorites, rand);
+  (state.swingWork||[]).filter(s=>s.autoAdd).forEach(s=>{ items.push({key:'sw_'+s.id, area:s.area, drillId:'sw_'+s.id, minutes:10, fixed:false, swingWork:true}); });
+  return {date:dateStr, minutes:total, salt:salt||'', items, games, mode:'auto'};
+}
+function totalPracticeMinutes(){ const m=state.completions.reduce((s,c)=>s+(c.minutes||0),0); const h=Math.floor(m/60), r=m%60; return h?`${h}h ${r}m`:`${m}m`; }
+function computeStreak(){
+  const dates = new Set(state.completions.map(c=>c.date));
+  let streak=0; const d=new Date();
+  if(!dates.has(todayStr())) d.setDate(d.getDate()-1);
+  while(true){ const ds=d.toISOString().slice(0,10); if(dates.has(ds)){streak++; d.setDate(d.getDate()-1);} else break; }
+  return streak;
+}
+
+/* ---------- actions ---------- */
+function setToast(msg){ state.toast=msg; render(); setTimeout(()=>{ state.toast=null; const t=document.getElementById('toast'); if(t) t.remove(); }, 1800); }
+function plannedMinutesFor(drillId){ if(!state.planCache) return null; const it=state.planCache.items.find(i=>i.drillId===drillId); return it?it.minutes:null; }
+async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=todayStr(); const idx=state.completions.findIndex(c=>c.date===t&&c.drillId===drillId);
+  const wasComplete = idx>=0;
+  if(idx>=0){ state.completions.splice(idx,1); }
+  else { const mins = (loggedMinutes!=null?loggedMinutes:plannedMinutesFor(drillId)); state.completions.push({date:t, drillId, minutes:mins, seconds:loggedSeconds!=null?loggedSeconds:(loggedMinutes!=null?loggedMinutes*60:null), logged: loggedMinutes!=null}); }
+  await persistActivity(); render();
+  if(!wasComplete && state.planCache && state.planCache.date===t){
+    const allDone = state.planCache.items.every(it=>state.completions.some(c=>c.date===t&&c.drillId===it.drillId));
+    if(allDone && confirm('Nice work — you finished all your drills! Want more?')) await addMoreDrills();
+  }
+}
+async function toggleGameComplete(gameId){ const t=todayStr(); const idx=state.completions.findIndex(c=>c.date===t&&c.drillId===gameId&&c.isGame);
+  if(idx>=0){ state.completions.splice(idx,1); }
+  else { const g=findGame(gameId); state.completions.push({date:t, drillId:gameId, minutes:null, seconds:null, logged:false, isGame:true, gameName:g?g.name:''}); }
+  await persistActivity(); render();
+}
+async function addMoreDrills(){
+  const t=todayStr(); const used = new Set(state.planCache.items.map(i=>i.drillId));
+  const added=[];
+  for(const areaId of state.ranking){
+    const pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed && !used.has(d.id)), state.profile);
+    const favs = pool.filter(d=>state.favorites.includes(d.id));
+    const pick = favs[0]||pool[0];
+    if(pick){ used.add(pick.id); added.push({key:'more_'+pick.id+'_'+Date.now(), area:areaId, drillId:pick.id, minutes:10, fixed:false}); }
+    if(added.length>=3) break;
+  }
+  state.planCache.items.push(...added);
+  await sSet('plan-cache', state.planCache); setToast('Added '+added.length+' more drill'+(added.length===1?'':'s')); render();
+}
+/* drill detail */
+function openDrill(drillId, from){ state.detailDrillId=drillId; state.detailFrom=from||'today'; state.view='drilldetail'; render(); }
+function closeDrill(){ stopTimer(true); state.detailDrillId=null; state.view=state.detailFrom||'today'; if(state.view==='today') ensureTodayPlan(); render(); }
+/* timer */
+function startTimer(){ state.timer={start:Date.now(), elapsed:0}; timerInterval=setInterval(()=>{ if(state.timer){ state.timer.elapsed=Math.floor((Date.now()-state.timer.start)/1000); const el=document.getElementById('timer_display'); if(el) el.textContent=fmtTime(state.timer.elapsed); } },1000); render(); }
+function stopTimer(silent){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } if(!silent) render(); }
+function fmtTime(s){ const m=Math.floor(s/60), sec=s%60; return m+':'+String(sec).padStart(2,'0'); }
+async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); setToast('Logged '+fmtTime(secs)); closeDrill(); }
+/* session-level timer (whole practice) */
+function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0;
+  state.profile.sessionTimer={start:Date.now()-base*1000, elapsed:base, running:true};
+  sessionInterval=setInterval(()=>{ const st=state.profile.sessionTimer; if(st&&st.running){ st.elapsed=Math.floor((Date.now()-st.start)/1000); const el=document.getElementById('session_timer'); if(el) el.textContent=fmtTime(st.elapsed); } },1000); render(); }
+function pauseSessionTimer(){ const st=state.profile.sessionTimer; if(st){ st.elapsed=Math.floor((Date.now()-st.start)/1000); st.running=false; } if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;} render(); }
+async function logSessionTimer(){ const st=state.profile.sessionTimer; if(!st) return; const secs=st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed; const mins=Math.max(1,Math.round(secs/60));
+  if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;}
+  state.completions.push({date:todayStr(), drillId:'__session__', minutes:mins, seconds:secs, logged:true, sessionLog:true});
+  state.profile.sessionTimer=null; await persistActivity(); await persistProfile(); setToast('Logged '+fmtTime(secs)+' session'); render();
+}
+/* game detail (works like a drill) */
+function openGame(id,from){ state.detailGameId=id; state.detailFrom=from||'games'; state.view='gamedetail'; render(); }
+function closeGame(){ stopTimer(true); state.timer=null; state.detailGameId=null; state.view=state.detailFrom||'games'; if(state.view==='today') ensureTodayPlan(); render(); }
+async function addGameToToday(id){ ensureTodayPlan(); const g=findGame(id); if(!g) return;
+  state.planCache.games = state.planCache.games||[];
+  if(state.planCache.games.includes(id)){ setToast('Already in today'); return; }
+  state.planCache.games.push(id); await sSet('plan-cache', state.planCache); setToast('Added to today'); render();
+}
+async function removeGameFromToday(id){ if(!state.planCache) return; state.planCache.games=(state.planCache.games||[]).filter(x=>x!==id); await sSet('plan-cache', state.planCache); render(); }
+async function finishGameTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null;
+  const g=findGame(state.detailGameId); state.completions.push({date:todayStr(), drillId:state.detailGameId, minutes:mins, seconds:secs, logged:true, isGame:true, gameName:g?g.name:''});
+  await persistActivity(); setToast('Logged '+fmtTime(secs)); closeGame();
+}
+/* add drills to today's plan */
+function toggleAddDrill(){ state.addDrillOpen=!state.addDrillOpen; render(); }
+function setAddDrillArea(v){ state.addDrillArea=v; render(); }
+async function addDrillToPlan(drillId){ ensureTodayPlan(); const d=allDrills().find(x=>x.id===drillId); if(!d) return;
+  if(state.planCache.items.some(i=>i.drillId===drillId)){ setToast('Already in plan'); return; }
+  state.planCache.items.push({key:'added_'+drillId+'_'+Date.now(), area:d.area, drillId, minutes:10, fixed:false});
+  await sSet('plan-cache', state.planCache); setToast('Added'); render();
+}
+async function removePlanItem(key){ if(!state.planCache) return; state.planCache.items=state.planCache.items.filter(i=>i.key!==key); await sSet('plan-cache', state.planCache); render(); }
+function toggleAddGame(){ state.addGameOpen=!state.addGameOpen; render(); }
+async function toggleFavorite(drillId){ const idx=state.favorites.indexOf(drillId); if(idx>=0) state.favorites.splice(idx,1); else state.favorites.push(drillId); await persistActivity(); render(); }
+function setLibFilter(v){ state.libFilter=v; render(); }
+function setGameFilter(v){ state.gameFilter=v; render(); }
+function toggleExpand(key){ state.expanded.has(key)?state.expanded.delete(key):state.expanded.add(key); render(); }
+
+function ensureTodayPlan(){
+  if(!state.planCache || state.planCache.date!==todayStr()){
+    state.planCache = computePlan(todayStr(), state.profile.sessionLength, '');
+    sSet('plan-cache', state.planCache);
+  }
+  state.todayMinutes = state.planCache.minutes;
+}
+async function regenerateToday(){
+  const prevIds = state.planCache ? state.planCache.items.filter(i=>!i.fixed).map(i=>i.drillId) : [];
+  state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), prevIds);
+  await sSet('plan-cache', state.planCache); render();
+}
+async function regenTodayWithMinutes(){ state.planCache = computePlan(todayStr(), state.todayMinutes, state.planCache?state.planCache.salt:''); await sSet('plan-cache', state.planCache); render(); }
+function adjustMinutes(delta){ state.todayMinutes = Math.max(15,(state.todayMinutes||state.profile.sessionLength)+delta); regenTodayWithMinutes(); }
+function setCustomMinutes(){ const v=parseInt(document.getElementById('custom_min').value); if(v>0){ state.todayMinutes=v; regenTodayWithMinutes(); } }
+async function toggleSessionMode(){ state.profile.sessionMode = state.profile.sessionMode==='untimed'?'timed':'untimed'; await persistProfile(); render(); }
+function toggleSwapMode(){ state.swapMode=!state.swapMode; state.swapSelection=new Set(); render(); }
+function toggleSwapSelect(key){ state.swapSelection.has(key)?state.swapSelection.delete(key):state.swapSelection.add(key); render(); }
+async function swapSelected(){
+  const rand = mulberry32(Date.now()>>>0);
+  state.planCache.items = state.planCache.items.map(item=>{
+    if(!state.swapSelection.has(item.key)||item.fixed) return item;
+    const used = state.planCache.items.map(i=>i.drillId);
+    const pool = allDrills().filter(d=>d.area===item.area && !d.fixed && !used.includes(d.id));
+    if(!pool.length) return item;
+    const pick = pool[Math.floor(rand()*pool.length)];
+    return {...item, drillId:pick.id, key:item.area+'_'+pick.id};
+  });
+  await sSet('plan-cache', state.planCache);
+  state.swapMode=false; state.swapSelection=new Set(); render();
+}
+function toggleBuildSelect(id){ state.buildSelection.has(id)?state.buildSelection.delete(id):state.buildSelection.add(id); render(); }
+function toggleGameSwapMode(){ state.gameSwapMode=!state.gameSwapMode; state.gameSwapSelection=new Set(); render(); }
+function toggleGameSwapSelect(id){ state.gameSwapSelection.has(id)?state.gameSwapSelection.delete(id):state.gameSwapSelection.add(id); render(); }
+async function swapSelectedGames(){
+  const rand = mulberry32(Date.now()>>>0);
+  const current = state.planCache.games||[];
+  state.planCache.games = current.map(id=>{
+    if(!state.gameSwapSelection.has(id)) return id;
+    const g = findGame(id);
+    const pool = (g && g.performance ? ALL_GAMES.filter(x=>x.performance) : GAMES).filter(x=>x.id!==id && !current.includes(x.id));
+    if(!pool.length) return id;
+    return pool[Math.floor(rand()*pool.length)].id;
+  });
+  await sSet('plan-cache', state.planCache);
+  state.gameSwapMode=false; state.gameSwapSelection=new Set(); render();
+}
+async function regenerateGames(){
+  state.planCache.games = selectTodayGames(state.favorites, mulberry32(Date.now()>>>0));
+  await sSet('plan-cache', state.planCache); render();
+}
+async function useBuildPlan(){
+  const ids = Array.from(state.buildSelection); if(!ids.length) return;
+  const items = ids.map(id=>{ const d=allDrills().find(x=>x.id===id); return {key:'custom_'+id, area:d.area, drillId:id, minutes:Math.round((state.profile.sessionLength)/ids.length), fixed:false}; });
+  state.planCache = {date:todayStr(), minutes:state.profile.sessionLength, items, mode:'custom'};
+  await sSet('plan-cache', state.planCache);
+  state.todayMinutes = state.planCache.minutes; state.buildSelection=new Set();
+  setToast('Custom plan set for today'); switchView('today');
+}
+function moveRank(list, idx, dir){ const j=idx+dir; if(j<0||j>=list.length) return; [list[idx],list[j]]=[list[j],list[idx]]; render(); }
+function dragStart(idx){ dragIdx=idx; }
+function dropAt(idx){ if(dragIdx===null||dragIdx===idx) return; const item=draftRanking.splice(dragIdx,1)[0]; draftRanking.splice(idx,0,item); dragIdx=null; render(); }
+function dragStartOrder(idx){ dragStartIdx=idx; }
+function dropStartOrder(idx){ if(dragStartIdx===null||dragStartIdx===idx) return; const item=draftStartOrder.splice(dragStartIdx,1)[0]; draftStartOrder.splice(idx,0,item); dragStartIdx=null; render(); }
+function setDraftMode(m){ draftMode=m; render(); }
+
+function onPhotoSelected(evt){
+  const file = evt.target.files && evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{ draftPhoto = reader.result; render(); };
+  reader.readAsDataURL(file);
+}
+async function saveProfileForm(){
+  const name = document.getElementById('f_name').value.trim();
+  if(name===''){ setToast('Please enter your name'); const el=document.getElementById('f_name'); if(el) el.style.borderColor='var(--danger)'; return; }
+  const handicap = document.getElementById('f_handicap').value.trim();
+  if(handicap===''){ setToast('Please enter your handicap'); const el=document.getElementById('f_handicap'); if(el) el.style.borderColor='var(--danger)'; return; }
+  const hand = document.getElementById('f_hand').value;
+  const goal = document.getElementById('f_goal').value.trim();
+  const skillLevel = document.getElementById('f_level').value;
+  const sessionMode = draftMode || 'timed';
+  const sessionLength = sessionMode==='untimed' ? (state.profile?state.profile.sessionLength:90) : (parseInt(document.getElementById('f_session').value)||60);
+  const startOrder = (draftStartOrder||AREAS.map(a=>a.id)).slice();
+  const startArea = startOrder[0];
+  const photo = draftPhoto || '';
+  state.profile = {displayName:name, handicap, hand, goal, skillLevel, sessionLength, startArea, startOrder, sessionMode, photo};
+  state.ranking = draftRanking.slice();
+  await persistProfile();
+  state.planCache = computePlan(todayStr(), sessionLength, '');
+  await sSet('plan-cache', state.planCache);
+  state.todayMinutes = sessionLength;
+  draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null;
+  setToast('Saved'); switchView('today');
+}
+async function resetAll(){ if(!confirm('Erase all Range Caddy data on this device?')) return;
+  try{await window.storage.delete('profile');}catch(e){} try{await window.storage.delete('activity');}catch(e){} try{await window.storage.delete('plan-cache');}catch(e){}
+  location.reload();
+}
+async function addSwingWork(){
+  const name=document.getElementById('sw_name').value.trim(); if(!name) return;
+  const description=document.getElementById('sw_desc').value.trim();
+  const area=document.getElementById('sw_area').value;
+  const autoAdd=document.getElementById('sw_auto').checked;
+  state.swingWork.push({id:'sw_'+Date.now(), name, description, area, autoAdd, date:todayStr()});
+  await persistActivity();
+  if(state.view==='today') ensureTodayPlan();
+  render();
+}
+async function removeSwingWork(id){ state.swingWork = state.swingWork.filter(s=>s.id!==id); await persistActivity(); render(); }
+
+async function loadSuggestions(){
+  try{ const list = await window.storage.list('suggestion:', true); const items=[];
+    for(const k of (list?.keys||[])){ try{ const r=await window.storage.get(k, true); if(r) items.push({...JSON.parse(r.value), key:k}); }catch(e){} }
+    state.suggestions = items.sort((a,b)=>b.ts-a.ts);
+  }catch(e){ state.suggestions=[]; }
+}
+async function submitSuggestion(){
+  const area = document.getElementById('sug_area').value, name=document.getElementById('sug_name').value.trim(), description=document.getElementById('sug_desc').value.trim(), author=document.getElementById('sug_author').value.trim();
+  if(!name||!description) return;
+  const id = 'suggestion:'+Date.now()+'_'+Math.floor(Math.random()*1000);
+  try{ await window.storage.set(id, JSON.stringify({name,area,description,author,ts:Date.now()}), true); setToast('Thanks — submitted!'); await loadSuggestions(); }catch(e){ setToast('Could not submit, try again'); }
+  render();
+}
+async function deleteSuggestion(key){
+  try{ await window.storage.delete(key, true); await loadSuggestions(); setToast('Removed'); }catch(e){ setToast('Could not remove'); }
+  render();
+}
+async function copyExportLog(){ const t=document.getElementById('export_text'); t.select(); try{ await navigator.clipboard.writeText(t.value); setToast('Copied!'); }catch(e){ setToast('Select the text and copy manually'); } }
+
+async function addDrillToToday(drillId){ ensureTodayPlan(); const d=allDrills().find(x=>x.id===drillId); if(!d) return;
+  if(state.planCache.items.some(i=>i.drillId===drillId)){ setToast('Already in today\'s plan'); return; }
+  state.planCache.items.push({key:'added_'+drillId, area:d.area, drillId, minutes:plannedMinutesFor(drillId)||10, fixed:false});
+  await sSet('plan-cache', state.planCache); setToast('Added to today'); render();
+}
+function switchView(v){
+  state.view=v;
+  if(v==='today') ensureTodayPlan();
+  if(v==='suggest'){ state.suggestionsLoading=true; render(); loadSuggestions().then(()=>{state.suggestionsLoading=false; render();}); return; }
+  render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const el = document.getElementById('content');
+  const map = {onboarding:()=>renderProfileForm(true), profile_edit:()=>renderProfileForm(false), profile:renderProfileSummary,
+    today:renderToday, library:renderLibrary, games:renderGames, buildplan:renderBuildPlan,
+    swingwork:renderSwingWork, suggest:renderSuggest, exportlog:renderExportLog, drilldetail:renderDrillDetail, gamedetail:renderGameDetail, practicetime:renderPracticeTime};
+  el.innerHTML = (map[state.view]||(()=>'<div class="empty">Loading…</div>'))();
+  document.getElementById('navbar').innerHTML = state.profile ? renderNav() : '';
+  if(state.toast){ const t=document.createElement('div'); t.className='toast'; t.id='toast'; t.textContent=state.toast; document.getElementById('app').appendChild(t); }
+}
+function renderNav(){
+  const tabs = [['today','Today',ICON_HOME],['library','Library',ICON_LIBRARY],['games','Games',ICON_TROPHY]];
+  const subMap = {profile_edit:'profile', swingwork:'profile', suggest:'profile', exportlog:'profile', practicetime:'profile', buildplan:'today', drilldetail:(state.detailFrom==='library'?'library':'today'), gamedetail:(state.detailFrom==='today'?'today':'games')};
+  const active = subMap[state.view] || state.view;
+  const navBtns = tabs.map(([v,label,icon])=>`<button class="navbtn ${active===v?'active':''}" onclick="switchView('${v}')" title="${label}"><span class="navicon">${icon}</span></button>`).join('');
+  const photo = state.profile && state.profile.photo;
+  return `<div class="navpill">${navBtns}</div>
+  <button class="navavatarbtn ${active==='profile'?'active':''}" onclick="switchView('profile')" title="Profile">${photo?`<img src="${photo}">`:ICON_PERSON}</button>`;
+}
+
+function renderProfileForm(isOnboarding){
+  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',sessionLength:90,startArea:'driver_woods',sessionMode:'timed'};
+  draftRanking = draftRanking || (state.ranking?state.ranking.slice():AREAS.map(a=>a.id));
+  if(draftStartOrder===null) draftStartOrder = (p.startOrder && p.startOrder.length) ? p.startOrder.slice() : [p.startArea, ...AREAS.map(a=>a.id).filter(x=>x!==p.startArea)];
+  if(draftMode===null) draftMode = p.sessionMode;
+  if(draftPhoto===null) draftPhoto = p.photo || '';
+  const startRows = draftStartOrder.map((areaId,idx)=>`
+    <div class="rankrow2" draggable="true" ondragstart="dragStartOrder(${idx})" ondragover="event.preventDefault()" ondrop="dropStartOrder(${idx})">
+      <span class="rankbadge" style="background:var(--flag);color:var(--ink)">${idx+1}</span>
+      <span class="rankicon">${AREA_ICON[areaId]}</span>
+      <span style="flex:1;font-weight:600;font-size:14.5px">${areaLabel(areaId)}</span>
+      <div class="rankarrows">
+        <button ${idx===0?'disabled':''} onclick="moveRank(draftStartOrder,${idx},-1)">↑</button>
+        <button ${idx===draftStartOrder.length-1?'disabled':''} onclick="moveRank(draftStartOrder,${idx},1)">↓</button>
+      </div>
+    </div>`).join('');
+  const rankRows = draftRanking.map((areaId,idx)=>`
+    <div class="rankrow2" draggable="true" ondragstart="dragStart(${idx})" ondragover="event.preventDefault()" ondrop="dropAt(${idx})">
+      <span class="rankbadge">${idx+1}</span>
+      <span class="rankicon">${AREA_ICON[areaId]}</span>
+      <span style="flex:1;font-weight:600;font-size:14.5px">${areaLabel(areaId)}</span>
+      <div class="rankarrows">
+        <button ${idx===0?'disabled':''} onclick="moveRank(draftRanking,${idx},-1)">↑</button>
+        <button ${idx===draftRanking.length-1?'disabled':''} onclick="moveRank(draftRanking,${idx},1)">↓</button>
+      </div>
+    </div>`).join('');
+  return `
+    <h1>${isOnboarding?'Welcome to Range Caddy':'Update Your Profile'}</h1>
+    <p class="muted">${isOnboarding?"Quick setup so today's plan fits you.":'Update your details or retake the skill survey.'}</p>
+    <label>Profile Picture</label>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+      <div class="avatar" style="overflow:hidden;cursor:pointer" onclick="document.getElementById('f_photo').click()">${draftPhoto?`<img src="${draftPhoto}" style="width:100%;height:100%;object-fit:cover">`:ICON_CAMERA}</div>
+      <div>
+        <input type="file" id="f_photo" accept="image/*" style="display:none" onchange="onPhotoSelected(event)">
+        <button type="button" class="btn small secondary" onclick="document.getElementById('f_photo').click()">${draftPhoto?'Change photo':'Add photo'}</button>
+      </div>
+    </div>
+    <label>Name <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_name" placeholder="Your name" value="${escapeHtml(p.displayName)}">
+    <label>Handicap <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_handicap" placeholder="e.g. 14, 0, or Scratch" value="${escapeHtml(p.handicap)}">
+    <p class="muted" style="margin-top:-3px;font-size:11.5px">We use this to set how hard your drills start.</p>
+    <label>What's your level?</label>
+    <select id="f_level">
+      <option value="beginner" ${(!p.skillLevel||p.skillLevel==='auto'||p.skillLevel==='beginner')?'selected':''}>Beginner</option>
+      <option value="intermediate" ${p.skillLevel==='intermediate'?'selected':''}>Intermediate</option>
+      <option value="advanced" ${p.skillLevel==='advanced'?'selected':''}>Advanced</option>
+    </select>
+    <label>Dominant hand</label><select id="f_hand"><option value="R" ${p.hand==='R'?'selected':''}>Right</option><option value="L" ${p.hand==='L'?'selected':''}>Left</option></select>
+    <label>Primary goal (optional)</label><textarea id="f_goal">${escapeHtml(p.goal)}</textarea>
+    <label>Session style</label>
+    <div class="tabs" style="margin-bottom:0">
+      <button type="button" class="tabbtn ${draftMode!=='untimed'?'active':''}" onclick="setDraftMode('timed')">Timed</button>
+      <button type="button" class="tabbtn ${draftMode==='untimed'?'active':''}" onclick="setDraftMode('untimed')">Untimed</button>
+    </div>
+    ${draftMode!=='untimed' ? `<label>Average session length (minutes)</label><input type="number" id="f_session" value="${p.sessionLength}" min="15" max="240" step="5">` : '<p class="muted" style="margin-top:8px">Drills run until you hit the success mark — no clock.</p>'}
+    <label>How do you like to start practice?</label>
+    <p class="muted" style="margin-top:-3px">Use the arrows to set the order you warm up through. Your plan follows this flow.</p>
+    <div>${startRows}</div>
+    <label style="margin-top:18px">Rank what to work on</label>
+    <p class="muted" style="margin-top:-3px">Use the arrows. Most work needed goes at #1.</p>
+    <div>${rankRows}</div>
+    <button class="btn" style="margin-top:14px" onclick="saveProfileForm()">${isOnboarding?'Save & Build My Plan':'Save Changes'}</button>
+  `;
+}
+
+function renderProfileSummary(){
+  const p = state.profile;
+  const initials = (p.displayName||'GC').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  return `<h1>Profile</h1>
+  <div class="card">
+    <div class="rowline" style="justify-content:flex-start">
+      <div class="avatar" style="${p.photo?'overflow:hidden':''}">${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:initials}</div>
+      <div style="margin-left:12px"><strong style="font-size:18px">${escapeHtml(p.displayName)}</strong><br><span class="muted">Local profile</span></div>
+    </div>
+    <div class="statsrow">
+      <div><div class="statnum">${computeStreak()}🔥</div><div class="statlabel">Streak</div></div>
+      <div><div class="statnum">${state.completions.length}</div><div class="statlabel">Completed</div></div>
+      <div><div class="statnum">${state.favorites.length}</div><div class="statlabel">Favorites</div></div>
+    </div>
+    <div class="inforow" style="margin-top:4px"><span>Total practice time</span><span>${totalPracticeMinutes()}</span></div>
+  </div>
+  <div class="card">
+    <div class="inforow"><span>Handicap</span><span>${p.handicap||'—'}</span></div>
+    <div class="inforow"><span>Drill level</span><span>${['Beginner','Intermediate','Advanced'][targetTier(p)]}${p.difficultyPref&&p.difficultyPref!=='normal'?' · '+p.difficultyPref:''}</span></div>
+    <div class="inforow"><span>Dominant hand</span><span>${p.hand==='L'?'Left':'Right'}</span></div>
+    <div class="inforow"><span>Session mode</span><span>${p.sessionMode==='untimed'?'Untimed':'Timed · '+p.sessionLength+' min'}</span></div>
+    <div class="inforow"><span>Starts with</span><span>${areaLabel(p.startArea)}</span></div>
+  </div>
+  <button class="btn secondary" onclick="switchView('profile_edit')">Retake Survey</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="switchView('swingwork')">My Swing Work (private)</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="switchView('practicetime')">Practice Time</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="switchView('suggest')">Suggest a Drill</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="switchView('exportlog')">Export Practice Log for Coach</button>
+  <button class="btn danger" style="margin-top:18px" onclick="resetAll()">Reset App Data</button>`;
+}
+
+function renderToday(){
+  ensureTodayPlan();
+  const plan = state.planCache;
+  const streak = computeStreak();
+  const untimed = state.profile.sessionMode==='untimed';
+  const focusAreas = state.ranking.slice(0,3).map(areaLabel).join(' · ');
+  const doneToday = plan.items.filter(it=>state.completions.some(c=>c.date===todayStr()&&c.drillId===it.drillId)).length;
+
+  const st = state.profile.sessionTimer;
+  const timerRow = st ? `<div class="rowline" style="margin-top:8px"><span id="session_timer" class="num" style="font-size:20px">${fmtTime(st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed)}</span>
+      <div style="display:flex;gap:6px">${st.running?`<button class="btn small secondary" onclick="pauseSessionTimer()">Stop</button>`:`<button class="btn small secondary" onclick="startSessionTimer()">Resume</button>`}<button class="btn small" onclick="logSessionTimer()">Finish & Log</button></div></div>`
+    : `<button class="btn small" style="margin-top:8px" onclick="startSessionTimer()">Start Timer</button>`;
+
+  const timeCard = untimed ? `
+    <div class="card"><div class="rowline"><strong>Untimed session</strong><button class="btn small secondary" onclick="toggleSessionMode()">Switch to Timed</button></div>
+    <p class="muted" style="margin-top:6px">Work each drill until you hit its success mark, then move on.</p>${timerRow}</div>` : `
+    <div class="card" style="padding:7px 10px"><div class="rowline">
+      <span style="font-size:12px;font-weight:700">Today I have</span>
+      <span class="num" style="font-size:15px">${plan.minutes} min</span>
+      <div style="display:flex;gap:4px;align-items:center">
+        <button class="btn small secondary" style="padding:5px 9px;font-size:12px" onclick="adjustMinutes(-15)">−15</button>
+        <button class="btn small secondary" style="padding:5px 9px;font-size:12px" onclick="adjustMinutes(15)">+15</button>
+        <input type="number" id="custom_min" placeholder="Custom" style="width:56px;padding:5px 6px;font-size:12px">
+        <button class="btn small secondary" style="padding:5px 9px;font-size:12px" onclick="setCustomMinutes()">Set</button>
+      </div>
+    </div>
+    <div class="rowline" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+      <button class="linkbtn" style="font-size:12px" onclick="toggleSessionMode()">Switch to Untimed</button>
+      ${st ? '' : `<button class="btn small" onclick="startSessionTimer()">▶ Start Timer</button>`}
+    </div>
+    ${st ? timerRow : ''}
+    </div>`;
+
+  const sessionHeader = `
+    <div class="rowline"><h2>Your Session</h2>
+      <div style="display:flex;gap:12px">
+        ${state.swapMode ? `<button class="linkbtn" onclick="swapSelected()">Swap (${state.swapSelection.size})</button><button class="linkbtn" onclick="toggleSwapMode()">Cancel</button>`
+          : `<button class="linkbtn" onclick="toggleSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateToday()">Regenerate all</button>`}
+      </div>
+    </div>
+    <p class="muted" style="margin-bottom:10px"><button class="linkbtn" onclick="switchView('buildplan')">Build your own plan instead →</button></p>`;
+
+  const cards = plan.items.map(item=>{
+    const d = allDrills().find(x=>x.id===item.drillId) || {name:'Drill unavailable',description:'',setup:'',repsOrTime:'',success:'',difficulty:''};
+    const done = state.completions.some(c=>c.date===todayStr()&&c.drillId===item.drillId);
+    const isFocus = item.area===state.ranking[0] && !item.fixed;
+    const added = String(item.key).startsWith('added_');
+    return `<div class="card ${isFocus?'focus':''}">
+      <div class="rowline">
+        <span class="eyebrow">${areaLabel(item.area)}${item.fixed?' · Always First':(!untimed&&item.minutes?' · '+item.minutes+' min':'')}</span>
+        ${state.swapMode && !item.fixed ? `<input type="checkbox" ${state.swapSelection.has(item.key)?'checked':''} onclick="toggleSwapSelect('${item.key}')">`
+          : `<span class="checkcircle ${done?'done':''}" onclick="toggleComplete('${item.drillId}')">${done?'✓':''}</span>`}
+      </div>
+      <div onclick="openDrill('${item.drillId}','today')" style="cursor:pointer">
+        <strong>${escapeHtml(d.name)}</strong>
+        <p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p>
+        <p class="reps">🎯 ${escapeHtml(d.repsOrTime)}</p>
+      </div>
+      <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>${added?`<button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removePlanItem('${item.key}')">Remove</button>`:''}</div>
+    </div>`;
+  }).join('') || '<div class="empty">No drills scheduled — try adjusting your session length.</div>';
+
+  // add-drill panel
+  const addPool = allDrills().filter(d=>!d.fixed && !plan.items.some(i=>i.drillId===d.id) && (state.addDrillArea==='all'||d.area===state.addDrillArea));
+  const addPanel = state.addDrillOpen ? `
+    <div class="card">
+      <div class="rowline"><strong>Add a drill to today</strong><button class="linkbtn" onclick="toggleAddDrill()">Close</button></div>
+      <select onchange="setAddDrillArea(this.value)" style="margin:8px 0">
+        <option value="all">All areas</option>${AREAS.map(a=>`<option value="${a.id}" ${state.addDrillArea===a.id?'selected':''}>${a.label}</option>`).join('')}
+      </select>
+      ${addPool.map(d=>`<div class="rowline" style="padding:7px 0;border-top:1px solid var(--line)"><span style="font-size:13px">${escapeHtml(d.name)} <span class="muted">· ${AREA_SHORT[d.area]}</span></span><button class="btn small" onclick="addDrillToPlan('${d.id}')">Add</button></div>`).join('') || '<p class="muted">Nothing left to add in this area.</p>'}
+    </div>` : `<button class="btn secondary" onclick="toggleAddDrill()">+ Add More Drills</button>`;
+
+  // performance & games section
+  const gamesHeader = `<h2>Performance & Games</h2>
+  <div style="display:flex;gap:14px;margin-bottom:2px">
+    ${state.gameSwapMode ? `<button class="linkbtn" onclick="swapSelectedGames()">Swap (${state.gameSwapSelection.size})</button><button class="linkbtn" onclick="toggleGameSwapMode()">Cancel</button>`
+      : `<button class="linkbtn" onclick="toggleGameSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateGames()">Regenerate all</button>`}
+  </div>`;
+  const todayGames = (plan.games||[]).map(id=>{ const g=findGame(id); if(!g) return '';
+    const fav=state.favorites.includes(id);
+    const gDone=state.completions.some(c=>c.date===todayStr()&&c.drillId===id&&c.isGame);
+    return `<div class="card">
+      <div class="rowline"><span class="eyebrow">${g.players}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${state.gameSwapMode ? `<input type="checkbox" ${state.gameSwapSelection.has(id)?'checked':''} onclick="toggleGameSwapSelect('${id}')">`
+            : `<span class="checkcircle ${gDone?'done':''}" onclick="toggleGameComplete('${id}')">${gDone?'✓':''}</span><button class="starbtn" onclick="toggleFavorite('${id}')">${fav?'★':'☆'}</button>`}
+        </div>
+      </div>
+      <div onclick="openGame('${id}','today')" style="cursor:pointer"><strong>${escapeHtml(g.name)}${g.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(g.description)}</p></div>
+      <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openGame('${id}','today')">Open game ›</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeGameFromToday('${id}')">Remove</button></div>
+    </div>`; }).join('') || '<div class="empty">No games today — add one from the Games tab.</div>';
+  const gamePool = ALL_GAMES.filter(g=>!(plan.games||[]).includes(g.id));
+  const addGamePanel = state.addGameOpen ? `
+    <div class="card">
+      <div class="rowline"><strong>Add a game to today</strong><button class="linkbtn" onclick="toggleAddGame()">Close</button></div>
+      ${gamePool.map(g=>`<div class="rowline" style="padding:7px 0;border-top:1px solid var(--line)"><span style="font-size:13px">${escapeHtml(g.name)} <span class="muted">· ${escapeHtml(g.players)}</span></span><button class="btn small" onclick="addGameToToday('${g.id}')">Add</button></div>`).join('') || '<p class="muted">All games are already in today.</p>'}
+    </div>` : `<button class="btn secondary" onclick="toggleAddGame()">+ Add a Game</button>`;
+  const gamesSection = `<div class="divider"></div>${gamesHeader}<p class="muted" style="margin-bottom:10px">Finish your session with competitive reps. Tap a game to open it and time your round.</p>${todayGames}${addGamePanel}`;
+
+  return `<h1>Hey ${escapeHtml(state.profile.displayName)} 👋</h1>
+  <div class="card"><div class="rowline"><span class="num" style="font-size:30px">${doneToday}/${plan.items.length}</span>
+  <div style="text-align:right"><div>🔥 <strong>${streak}</strong> day streak</div><div class="muted" style="font-size:12px">${untimed?'Untimed session':plan.minutes+' min session'}</div></div></div>
+  <p class="muted" style="margin-top:8px">Focus: ${focusAreas}</p></div>
+  ${timeCard}${sessionHeader}${cards}${addPanel}${gamesSection}`;
+}
+
+function renderBuildPlan(){
+  const list = allDrills().filter(d=>!d.fixed && !d.swingWork).map(d=>{
+    const checked = state.buildSelection.has(d.id);
+    return `<div class="card" style="cursor:pointer;${checked?'border-color:var(--fairway);background:#F0F5EE':''}" onclick="toggleBuildSelect('${d.id}')">
+      <div class="rowline"><span class="pill">${areaLabel(d.area)}</span><input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation();toggleBuildSelect('${d.id}')"></div>
+      <strong>${escapeHtml(d.name)}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p></div>`;
+  }).join('');
+  return `<button class="linkback" onclick="switchView('today')">‹ Today</button><h1>Build Your Own Plan</h1><p class="muted">Pick exactly the drills you want to practice today.</p>
+  ${list}<button class="btn" onclick="useBuildPlan()">Use ${state.buildSelection.size} Selected Drill${state.buildSelection.size===1?'':'s'} Today</button>`;
+}
+
+function renderLibrary(){
+  const f = state.libFilter;
+  let drills = allDrills().filter(d=>!d.fixed && !d.swingWork);
+  if(f==='fav') drills = drills.filter(d=>state.favorites.includes(d.id));
+  else if(f!=='all') drills = drills.filter(d=>d.area===f);
+  const LIB_ORDER = ['putting','chipping','bunker','wedges_pitching','short_irons','mid_irons','long_irons','driver_woods'];
+  drills.sort((a,b)=>LIB_ORDER.indexOf(a.area)-LIB_ORDER.indexOf(b.area));
+  const options = `<option value="all">All areas</option><option value="fav" ${f==='fav'?'selected':''}>★ Favorites</option>` + AREAS.map(a=>`<option value="${a.id}" ${f===a.id?'selected':''}>${a.label}</option>`).join('');
+  const list = drills.map(d=>{ const fav=state.favorites.includes(d.id);
+    return `<div class="card">
+      <div class="rowline"><strong onclick="openDrill('${d.id}','library')" style="cursor:pointer;flex:1">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
+      <div onclick="openDrill('${d.id}','library')" style="cursor:pointer">
+        <span class="pill" style="margin:6px 0;display:inline-block">${areaLabel(d.area)}</span>
+        <p class="muted">${escapeHtml(d.description)}</p>
+      </div>
+      <button class="linkbtn" style="font-size:12px" onclick="openDrill('${d.id}','library')">Open drill ›</button></div>`;
+  }).join('') || `<div class="empty">${f==='fav'?'No favorites yet — tap ☆ on any drill to save it here.':'No drills in this area yet.'}</div>`;
+  return `<h1>Drill Library</h1><select onchange="setLibFilter(this.value)" style="margin-bottom:12px">${options}</select>${list}`;
+}
+
+function renderDrillDetail(){
+  const d = allDrills().find(x=>x.id===state.detailDrillId);
+  if(!d) return `<button class="linkback" onclick="closeDrill()">‹ Back</button><div class="empty">Drill not found.</div>`;
+  const fav = state.favorites.includes(d.id);
+  const inPlan = state.planCache && state.planCache.items.some(i=>i.drillId===d.id);
+  const done = state.completions.some(c=>c.date===todayStr()&&c.drillId===d.id);
+  const timing = state.timer;
+  return `<button class="linkback" onclick="closeDrill()">‹ Back</button>
+  <div class="rowline"><span class="pill">${areaLabel(d.area)}</span><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
+  <h1 style="margin-top:8px">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
+  ${inPlan ? `<button class="btn secondary" onclick="setToast('Already in today\\'s plan')">✓ In Today's Plan</button>` : `<button class="btn" onclick="addDrillToToday('${d.id}')">Use / Add to Today</button>`}
+  <div class="card" style="margin-top:14px">
+    <p>${escapeHtml(d.description)}</p>
+    <p class="reps" style="font-size:13px">🎯 ${escapeHtml(d.repsOrTime)} · ${d.difficulty}</p>
+    <p style="font-size:13.5px"><strong>Setup:</strong> ${escapeHtml(d.setup)}</p>
+    <p style="font-size:13.5px"><strong>Success:</strong> ${escapeHtml(d.success)}</p>
+  </div>
+  <div class="card">
+    <strong>Practice this drill</strong>
+    ${timing ? `<div style="text-align:center;margin:10px 0"><span id="timer_display" class="num" style="font-size:34px">${fmtTime(timing.elapsed)}</span></div>
+      <button class="btn" onclick="finishDrillTimed()">Finish & Log Time</button>
+      <button class="btn secondary" style="margin-top:8px" onclick="stopTimer()">Pause</button>`
+    : `<p class="muted" style="margin-top:6px">Start the timer to log how long you actually practice.</p>
+      <button class="btn" onclick="startTimer()">Start Practice Timer</button>
+      <button class="btn secondary" style="margin-top:8px" onclick="toggleComplete('${d.id}');setToast('${done?'Marked incomplete':'Marked complete'}')">${done?'✓ Completed today (tap to undo)':'Mark complete (no timer)'}</button>`}
+  </div>`;
+}
+
+function renderGames(){
+  const f = state.gameFilter||'all';
+  const gameCard = g=>{ const fav=state.favorites.includes(g.id);
+    return `<div class="card">
+      <div class="rowline"><strong onclick="openGame('${g.id}','games')" style="cursor:pointer;flex:1">${escapeHtml(g.name)}${g.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><button class="starbtn" onclick="toggleFavorite('${g.id}')">${fav?'★':'☆'}</button></div>
+      <div onclick="openGame('${g.id}','games')" style="cursor:pointer"><span class="pill" style="margin:6px 0;display:inline-block">${g.players}</span><p class="muted">${escapeHtml(g.description)}</p></div>
+      <button class="linkbtn" style="font-size:12px" onclick="openGame('${g.id}','games')">Open game ›</button></div>`; };
+  if(f==='fav'){
+    const favG = ALL_GAMES.filter(g=>state.favorites.includes(g.id));
+    const list = favG.map(gameCard).join('') || '<div class="empty">No favorite games yet — tap ☆ on any game.</div>';
+    return `<h1>Games</h1><select onchange="setGameFilter(this.value)" style="margin-bottom:12px"><option value="all">All games</option><option value="fav" selected>★ Favorites</option></select>${list}`;
+  }
+  return `<h1>Games</h1><p class="muted">Formats to test what you've built against real pressure. Tap a game to open it, add it to today, and time your round.</p>
+  <select onchange="setGameFilter(this.value)" style="margin:12px 0"><option value="all" selected>All games</option><option value="fav">★ Favorites</option></select>
+  <h2 style="margin-top:8px">On-Course Games</h2>${GAMES.map(gameCard).join('')}
+  <h2 style="margin-top:16px">Practice Games</h2>${PRACTICE_GAMES.map(gameCard).join('')}`;
+}
+
+function renderGameDetail(){
+  const g = findGame(state.detailGameId);
+  if(!g) return `<button class="linkback" onclick="closeGame()">‹ Back</button><div class="empty">Game not found.</div>`;
+  const fav = state.favorites.includes(g.id);
+  const inToday = state.planCache && (state.planCache.games||[]).includes(g.id);
+  const timing = state.timer;
+  return `<button class="linkback" onclick="closeGame()">‹ Back</button>
+  <div class="rowline"><span class="pill">${g.players}</span><button class="starbtn" onclick="toggleFavorite('${g.id}')">${fav?'★':'☆'}</button></div>
+  <h1 style="margin-top:8px">${escapeHtml(g.name)}${g.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
+  ${inToday ? `<button class="btn secondary" onclick="setToast('Already in today')">✓ In Today's Games</button>` : `<button class="btn" onclick="addGameToToday('${g.id}')">Use / Add to Today</button>`}
+  <div class="card" style="margin-top:14px"><p>${escapeHtml(g.description)}</p><p style="font-size:13.5px"><strong>How to play:</strong> ${escapeHtml(g.how)}</p></div>
+  <div class="card"><strong>Play this game</strong>
+    ${timing ? `<div style="text-align:center;margin:10px 0"><span id="timer_display" class="num" style="font-size:34px">${fmtTime(timing.elapsed)}</span></div>
+      <button class="btn" onclick="finishGameTimed()">Finish & Log Time</button>
+      <button class="btn secondary" style="margin-top:8px" onclick="stopTimer()">Pause</button>`
+    : `<p class="muted" style="margin-top:6px">Start the timer to log how long you played.</p><button class="btn" onclick="startTimer()">Start Timer</button>`}
+  </div>`;
+}
+
+function renderPracticeTime(){
+  const byDate={}; state.completions.forEach((c,i)=>{ (byDate[c.date]=byDate[c.date]||[]).push({c,i}); });
+  const dates = Object.keys(byDate).sort().reverse();
+  const rows = dates.map(date=>{
+    const entries = byDate[date].map(({c,i})=>{
+      let label = c.sessionLog?'Full session (timer)': c.isGame?(c.gameName||'Game')+' (game)' : (allDrills().find(x=>x.id===c.drillId)?.name || c.drillId);
+      const dur = c.seconds!=null ? fmtTime(c.seconds) : (c.minutes||0)+'m';
+      return `<div class="rowline" style="padding:6px 0;border-top:1px solid var(--line)">
+        <span style="font-size:13px">${escapeHtml(label)} <span class="muted">— ${dur}</span></span>
+        <div style="display:flex;gap:6px"><button class="linkbtn" style="font-size:12px" onclick="editCompletionTime(${i})">Edit</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeCompletionEntry(${i})">✕</button></div>
+      </div>`;
+    }).join('');
+    return `<div class="card"><strong>${date}</strong>${entries}</div>`;
+  }).join('') || '<div class="empty">No practice logged yet.</div>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Practice Time</h1><p class="muted">Total: ${totalPracticeMinutes()}. Edit or remove any entry to correct logged time.</p>${rows}`;
+}
+
+function renderSwingWork(){
+  const rows = state.swingWork.map(s=>`<div class="card"><div class="rowline"><strong>${escapeHtml(s.name)}</strong><button class="starbtn" onclick="removeSwingWork('${s.id}')">✕</button></div>
+    <span class="pill" style="margin:4px 0;display:inline-block">${areaLabel(s.area)}</span>
+    ${s.description?`<p class="muted">${escapeHtml(s.description)}</p>`:''}
+    <span class="muted" style="font-size:11px">${s.autoAdd?'Auto-added to daily practice':'Not in daily practice'} · ${s.date}</span></div>`).join('') || '<div class="empty">Nothing logged yet.</div>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>My Swing Work</h1><p class="muted">Private notes on full-swing mechanics you're working on. Only visible to you on this device.</p>
+  <label>Name</label><input type="text" id="sw_name" placeholder="e.g. Trail elbow connection">
+  <label>Description</label><textarea id="sw_desc" placeholder="What are you working on?"></textarea>
+  <label>Section</label><select id="sw_area">${AREAS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+  <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-family:'Inter';font-size:13px;margin-top:12px"><input type="checkbox" id="sw_auto"> Add to my everyday practice automatically (won't ask again)</label>
+  <button class="btn small" style="margin-top:10px" onclick="addSwingWork()">Add</button>
+  <div style="margin-top:14px">${rows}</div>`;
+}
+
+function renderSuggest(){
+  const rows = (state.suggestions||[]).map(s=>`<div class="card"><div class="rowline"><span class="pill">${areaLabel(s.area)}</span><button class="starbtn" onclick="deleteSuggestion('${s.key}')">✕</button></div><h2 style="margin-top:6px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">suggested by ${escapeHtml(s.author||'a golfer')}</p></div>`).join('') || '<div class="empty">No suggestions yet — be the first!</div>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Suggest a Drill</h1><p class="muted">Share a drill idea with everyone using Range Caddy — suggestions here are visible to all users of this app.</p>
+  <label>Area</label><select id="sug_area">${AREAS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+  <label>Drill name</label><input type="text" id="sug_name">
+  <label>Description</label><textarea id="sug_desc"></textarea>
+  <label>Your name (optional)</label><input type="text" id="sug_author">
+  <button class="btn" style="margin-top:12px" onclick="submitSuggestion()">Submit Suggestion</button>
+  <div class="divider"></div><h2>Community Suggestions</h2>${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
+}
+
+function buildExportText(){
+  const totalMin = state.completions.reduce((s,c)=>s+(c.minutes||0),0);
+  const h = Math.floor(totalMin/60), m = totalMin%60, totalStr = h?`${h}h ${m}m`:`${m}m`;
+  const lines = [`⛳ ${state.profile.displayName}'s Range Caddy Log`, `📅 ${todayStr()}   🔥 ${computeStreak()}-day streak`, `${state.completions.length} drills logged · ${totalStr} total`, '', '🎯 Focus areas (most work needed first)'];
+  state.ranking.slice(0,3).forEach((a,i)=>lines.push(`${i+1}. ${areaLabel(a)}`));
+  lines.push('', '📋 Sessions (most recent first)');
+  const byDate = {};
+  [...state.completions].reverse().forEach(c=>{ (byDate[c.date] = byDate[c.date]||[]).push(c); });
+  Object.keys(byDate).forEach(date=>{
+    let dayTotal=0; const rows=[];
+    byDate[date].forEach(c=>{ const d=allDrills().find(x=>x.id===c.drillId); const mins=c.minutes!=null?c.minutes:0; dayTotal+=mins;
+      let label;
+      if(c.sessionLog) label='Full session (timer)';
+      else if(c.isGame) label=(c.gameName||'Game')+' (game)';
+      else label=d?d.name+' ('+areaLabel(d.area)+')':c.drillId;
+      rows.push(`   • ${label} — ${mins} min${c.logged?' (timed)':''}`); });
+    lines.push(`${date} — ${dayTotal} min`); lines.push(...rows);
+  });
+  if(!state.completions.length) lines.push('(nothing logged yet)');
+  if(state.swingWork.length){ lines.push('', '🏌️ Full-swing focus notes'); state.swingWork.forEach(s=>lines.push('   • '+s.name+(s.description?': '+s.description:''))); }
+  return lines.join('\n');
+}
+function renderExportLog(){
+  const text = buildExportText();
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Export Log</h1><p class="muted">Everything you've practiced, with time spent. Send it to your coach or copy it.</p>
+  <textarea id="export_text" readonly style="width:100%;min-height:300px;font-family:'JetBrains Mono',monospace;font-size:12px">${escapeHtml(text)}</textarea>
+  <button class="btn" style="margin-top:10px" onclick="textToCoach()">Text to My Coach</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="copyExportLog()">Copy to Clipboard</button>`;
+}
+function textToCoach(){
+  const text = buildExportText();
+  const saved = state.profile.coachPhone||'';
+  const phone = prompt("Coach's phone number (leave blank to just open Messages):", saved) || '';
+  if(phone!==saved){ state.profile.coachPhone=phone; persistProfile(); }
+  const clean = phone.replace(/[^\d+]/g,'');
+  const body = encodeURIComponent(text);
+  window.location.href = (clean? 'sms:'+clean : 'sms:') + (/(iPhone|iPad|Mac)/.test(navigator.userAgent)?'&':'?') + 'body='+body;
+}
+
+/* ---------- init ---------- */
+async function init(){
+  const prof = await sGet('profile', null);
+  const act = await sGet('activity', {completions:[],favorites:[],customDrills:[],swingWork:[]});
+  const plan = await sGet('plan-cache', null);
+  if(prof){ state.profile=prof.profile; state.ranking=prof.ranking;
+    if(state.profile && !state.profile.startOrder){ const sa=state.profile.startArea||AREAS[0].id; state.profile.startOrder=[sa, ...AREAS.map(a=>a.id).filter(x=>x!==sa)]; } }
+  state.completions=act.completions||[]; state.favorites=act.favorites||[]; state.customDrills=act.customDrills||[]; state.swingWork=act.swingWork||[];
+  state.planCache=plan;
+  state.view = state.profile ? 'today' : 'onboarding';
+  render();
+}
+init();
+</script>
+</body>
+</html>
