@@ -12,6 +12,9 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-512.png">
 <link rel="manifest" href="manifest.json">
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 :root{--ink:#16281D;--fairway:#2F5233;--fairway-light:#4C7A52;--chalk:#F6F4EC;--paper:#FFFFFF;--flag:#C99A4B;--flag-dark:#A67B33;--slate:#3F6B45;--line:#E1DDD0;--danger:#B3462C;}
@@ -222,7 +225,70 @@ if(!window.storage){
   };
 }
 async function sGet(key, fallback, shared){ try{ const r = await window.storage.get(key, !!shared); return r ? JSON.parse(r.value) : fallback; }catch(e){ return fallback; } }
-async function sSet(key, val, shared){ try{ await window.storage.set(key, JSON.stringify(val), !!shared); }catch(e){ console.error('storage failed', e); } }
+async function sSet(key, val, shared){ try{ await window.storage.set(key, JSON.stringify(val), !!shared); if(!shared) scheduleCloudSync(); }catch(e){ console.error('storage failed', e); } }
+
+/* ---------- Firebase accounts + cloud sync ----------
+   Real email/password accounts so a golfer's data follows them across devices.
+   localStorage stays the working cache; Firestore is the synced source of truth
+   per signed-in user. Keys we sync (device-local 'shared:' keys are not synced). */
+const CLOUD_KEYS = ['profile','activity','plan-cache'];
+let fbAuth=null, fbDb=null, currentUser=null, cloudReady=false, cloudSyncTimer=null;
+try{
+  firebase.initializeApp({
+    apiKey: "AIzaSyA7a2YQpt6FhoUzbfyM9f1eThNmOQaUJ1Y",
+    authDomain: "range-caddy-a9a2f.firebaseapp.com",
+    projectId: "range-caddy-a9a2f",
+    storageBucket: "range-caddy-a9a2f.firebasestorage.app",
+    messagingSenderId: "570420332099",
+    appId: "1:570420332099:web:a6145384d3cf3a70bc36f6"
+  });
+  fbAuth = firebase.auth();
+  fbDb = firebase.firestore();
+  cloudReady = true;
+}catch(e){ console.error('Firebase init failed — running device-only', e); }
+
+function gatherLocalData(){ const d={}; CLOUD_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v!=null) d[k]=v; }); return d; }
+function scheduleCloudSync(){
+  if(!cloudReady || !currentUser) return;
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(()=>{
+    fbDb.collection('users').doc(currentUser.uid).set({ data: gatherLocalData(), email: currentUser.email, updatedAt: Date.now() }, { merge:true })
+      .catch(e=>console.error('cloud sync failed', e));
+  }, 700);
+}
+async function hydrateFromCloud(uid){
+  const snap = await fbDb.collection('users').doc(uid).get();
+  CLOUD_KEYS.forEach(k=>localStorage.removeItem(k));
+  if(snap.exists){ const d=(snap.data()||{}).data||{}; Object.keys(d).forEach(k=>{ if(typeof d[k]==='string') localStorage.setItem(k, d[k]); }); }
+}
+async function clearCloud(){ if(cloudReady && currentUser){ try{ await fbDb.collection('users').doc(currentUser.uid).set({ data:{}, email:currentUser.email, updatedAt:Date.now() }); }catch(e){} } }
+
+function toggleAuthMode(){ state.authMode = (state.authMode==='signup')?'signin':'signup'; state.authError=null; render(); }
+function authErrorText(e){ const c=(e&&e.code)||'';
+  if(c.includes('email-already-in-use')) return 'That email already has an account — try signing in instead.';
+  if(c.includes('invalid-email')) return "That doesn't look like a valid email.";
+  if(c.includes('weak-password')) return 'Password should be at least 6 characters.';
+  if(c.includes('wrong-password')||c.includes('invalid-credential')||c.includes('user-not-found')) return 'Wrong email or password.';
+  if(c.includes('too-many-requests')) return 'Too many attempts — please wait a bit and try again.';
+  if(c.includes('network')) return 'Network problem — check your connection.';
+  return 'Something went wrong. Please try again.'; }
+async function doAuth(){
+  if(!cloudReady){ state.authError='Accounts are unavailable right now.'; render(); return; }
+  const email=(document.getElementById('auth_email').value||'').trim();
+  const pass=document.getElementById('auth_pass').value||'';
+  if(!email || !pass){ state.authError='Enter your email and password.'; render(); return; }
+  state.authEmail=email; state.authLoading=true; state.authError=null; render();
+  try{
+    if(state.authMode==='signup') await fbAuth.createUserWithEmailAndPassword(email, pass);
+    else await fbAuth.signInWithEmailAndPassword(email, pass);
+    /* onAuthStateChanged takes over from here */
+  }catch(e){ state.authLoading=false; state.authError=authErrorText(e); render(); }
+}
+async function signOutUser(){
+  CLOUD_KEYS.forEach(k=>localStorage.removeItem(k));
+  state.profile=null; state.ranking=null; state.completions=[]; state.favorites=[]; state.customDrills=[]; state.swingWork=[]; state.planCache=null;
+  try{ await fbAuth.signOut(); }catch(e){}
+}
 
 /* ---------- state ---------- */
 let state = { profile:null, ranking:null, completions:[], favorites:[], customDrills:[], swingWork:[],
@@ -488,8 +554,9 @@ async function saveProfileForm(){
   draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null;
   setToast('Saved'); switchView('today');
 }
-async function resetAll(){ if(!confirm('Erase all Range Caddy data on this device?')) return;
+async function resetAll(){ if(!confirm('Erase all your Range Caddy data? This clears your account too and cannot be undone.')) return;
   try{await window.storage.delete('profile');}catch(e){} try{await window.storage.delete('activity');}catch(e){} try{await window.storage.delete('plan-cache');}catch(e){}
+  await clearCloud();
   location.reload();
 }
 async function addSwingWork(){
@@ -536,9 +603,24 @@ function switchView(v){
 }
 
 /* ---------- render ---------- */
+function renderAuth(){
+  const mode = state.authMode==='signup' ? 'signup' : 'signin';
+  return `
+    <div style="text-align:center;margin-top:24px">
+      <div class="avatar" style="width:90px;height:90px;margin:0 auto;overflow:hidden;background:var(--paper)"><img src="icon-180.png" style="width:100%;height:100%;object-fit:cover"></div>
+      <h1 style="margin-top:16px">Range Caddy</h1>
+      <p class="muted">${mode==='signup'?'Create an account to save your practice across devices.':'Sign in to pick up where you left off.'}</p>
+    </div>
+    <label>Email</label><input type="email" id="auth_email" autocomplete="email" placeholder="you@example.com" value="${escapeHtml(state.authEmail||'')}">
+    <label>Password</label><input type="password" id="auth_pass" autocomplete="${mode==='signup'?'new-password':'current-password'}" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')doAuth()">
+    ${state.authError?`<p style="color:var(--danger);font-size:13px;margin-top:10px">${escapeHtml(state.authError)}</p>`:''}
+    <button class="btn" style="margin-top:16px" ${state.authLoading?'disabled':''} onclick="doAuth()">${state.authLoading?'Please wait…':(mode==='signup'?'Create Account':'Sign In')}</button>
+    <p class="muted" style="text-align:center;margin-top:16px">${mode==='signup'?'Already have an account?':"Don't have an account yet?"} <button class="linkbtn" onclick="toggleAuthMode()">${mode==='signup'?'Sign in':'Create one'}</button></p>
+  `;
+}
 function render(){
   const el = document.getElementById('content');
-  const map = {onboarding:()=>renderProfileForm(true), profile_edit:()=>renderProfileForm(false), profile:renderProfileSummary,
+  const map = {auth:renderAuth, onboarding:()=>renderProfileForm(true), profile_edit:()=>renderProfileForm(false), profile:renderProfileSummary,
     today:renderToday, library:renderLibrary, games:renderGames, buildplan:renderBuildPlan,
     swingwork:renderSwingWork, suggest:renderSuggest, exportlog:renderExportLog, drilldetail:renderDrillDetail, gamedetail:renderGameDetail, practicetime:renderPracticeTime};
   el.innerHTML = (map[state.view]||(()=>'<div class="empty">Loading…</div>'))();
@@ -626,7 +708,7 @@ function renderProfileSummary(){
   <div class="card">
     <div class="rowline" style="justify-content:flex-start">
       <div class="avatar" style="${p.photo?'overflow:hidden':''}">${p.photo?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover">`:initials}</div>
-      <div style="margin-left:12px"><strong style="font-size:18px">${escapeHtml(p.displayName)}</strong><br><span class="muted">Local profile</span></div>
+      <div style="margin-left:12px"><strong style="font-size:18px">${escapeHtml(p.displayName)}</strong><br><span class="muted">${currentUser?escapeHtml(currentUser.email):'Local profile'}</span></div>
     </div>
     <div class="statsrow">
       <div><div class="statnum">${computeStreak()}🔥</div><div class="statlabel">Streak</div></div>
@@ -647,7 +729,8 @@ function renderProfileSummary(){
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('practicetime')">Practice Time</button>
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('suggest')">Suggest a Drill</button>
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('exportlog')">Export Practice Log for Coach</button>
-  <button class="btn danger" style="margin-top:18px" onclick="resetAll()">Reset App Data</button>`;
+  ${currentUser?`<button class="btn secondary" style="margin-top:18px" onclick="signOutUser()">Sign Out</button>`:''}
+  <button class="btn danger" style="margin-top:8px" onclick="resetAll()">Reset App Data</button>`;
 }
 
 function renderToday(){
@@ -946,7 +1029,27 @@ async function init(){
   state.view = state.profile ? 'today' : 'onboarding';
   render();
 }
-init();
+
+/* Startup: when accounts are available, auth state decides what shows.
+   No user → login/signup screen. Signed in → load their cloud data, then the app. */
+if(cloudReady){
+  state.view='loading'; render();
+  fbAuth.onAuthStateChanged(async (user)=>{
+    currentUser = user;
+    draftRanking=null; draftStart=null; draftStartOrder=null; draftMode=null; draftPhoto=null;
+    if(user){
+      state.authLoading=false; state.authError=null;
+      try{ await hydrateFromCloud(user.uid); }catch(e){ console.error('cloud hydrate failed', e); }
+      await init();
+    }else{
+      state.profile=null; state.ranking=null;
+      state.completions=[]; state.favorites=[]; state.customDrills=[]; state.swingWork=[]; state.planCache=null;
+      state.view='auth'; render();
+    }
+  });
+}else{
+  init();
+}
 </script>
 </body>
 </html>
