@@ -52,12 +52,13 @@ textarea{resize:vertical;min-height:50px;}
 .chipwrap{display:flex;flex-wrap:wrap;gap:8px;}
 .chip{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--ink);font-family:'Inter';}
 .chip.active{background:var(--fairway);color:var(--chalk);border-color:var(--fairway);}
-.rankrow2{display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:10px 12px 10px 10px;margin-bottom:9px;box-shadow:0 2px 6px rgba(22,40,29,.08);}
-.rankbadge{width:30px;height:30px;border-radius:50%;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-weight:700;font-size:15px;flex-shrink:0;}
-.rankicon{width:36px;height:36px;border-radius:50%;background:var(--chalk);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.rankrow2{display:flex;align-items:center;gap:14px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:15px 16px 15px 13px;margin-bottom:11px;box-shadow:0 2px 6px rgba(22,40,29,.08);}
+.rankbadge{width:36px;height:36px;border-radius:50%;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-weight:700;font-size:18px;flex-shrink:0;}
+.rankicon{width:44px;height:44px;border-radius:50%;background:var(--chalk);display:flex;align-items:center;justify-content:center;font-size:21px;flex-shrink:0;}
+.rankname{flex:1;font-weight:700;font-size:17px;}
 .rankgrip{display:none;}
-.rankarrows{display:flex;gap:5px;flex-shrink:0;}
-.rankarrows button{width:38px;height:38px;border-radius:50%;border:none;background:var(--chalk);cursor:pointer;color:var(--fairway);font-size:15px;font-weight:700;box-shadow:inset 0 0 0 1.5px var(--line);transition:background .1s;}
+.rankarrows{display:flex;gap:6px;flex-shrink:0;}
+.rankarrows button{width:44px;height:44px;border-radius:50%;border:none;background:var(--chalk);cursor:pointer;color:var(--fairway);font-size:18px;font-weight:700;box-shadow:inset 0 0 0 1.5px var(--line);transition:background .1s;}
 .rankarrows button:active{background:var(--fairway);color:var(--chalk);}
 .rankarrows button:disabled{opacity:.3;cursor:default;background:var(--chalk);color:var(--fairway);}
 .divider{border:none;border-top:1px dashed var(--line);margin:16px 0;}
@@ -88,10 +89,10 @@ textarea{resize:vertical;min-height:50px;}
 <script>
 /* ---------- data ---------- */
 const AREAS = [
- {id:'driver_woods', label:'Driver / Woods'},{id:'long_irons', label:'Long Irons'},
- {id:'mid_irons', label:'Mid Irons'},{id:'short_irons', label:'Short Irons'},
- {id:'wedges_pitching', label:'Wedges / Pitching'},{id:'chipping', label:'Chipping'},
- {id:'putting', label:'Putting'},{id:'bunker', label:'Bunker'}
+ {id:'putting', label:'Putting'},{id:'chipping', label:'Chipping'},
+ {id:'bunker', label:'Bunker'},{id:'wedges_pitching', label:'Wedges / Pitching'},
+ {id:'short_irons', label:'Short Irons'},{id:'mid_irons', label:'Mid Irons'},
+ {id:'long_irons', label:'Long Irons'},{id:'driver_woods', label:'Driver / Woods'}
 ];
 const AREA_SHORT = {driver_woods:'Driver',long_irons:'Long irons',mid_irons:'Mid irons',short_irons:'Short irons',wedges_pitching:'Wedges',chipping:'Chipping',putting:'Putting',bunker:'Bunker'};
 const AREA_ICON = {
@@ -554,7 +555,7 @@ function renderNav(){
 }
 
 function renderProfileForm(isOnboarding){
-  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',sessionLength:90,startArea:'driver_woods',sessionMode:'timed'};
+  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',sessionLength:90,startArea:'putting',sessionMode:'timed'};
   draftRanking = draftRanking || (state.ranking?state.ranking.slice():AREAS.map(a=>a.id));
   if(draftStartOrder===null) draftStartOrder = (p.startOrder && p.startOrder.length) ? p.startOrder.slice() : [p.startArea, ...AREAS.map(a=>a.id).filter(x=>x!==p.startArea)];
   if(draftMode===null) draftMode = p.sessionMode;
@@ -563,7 +564,7 @@ function renderProfileForm(isOnboarding){
     <div class="rankrow2" draggable="true" ondragstart="dragStartOrder(${idx})" ondragover="event.preventDefault()" ondrop="dropStartOrder(${idx})">
       <span class="rankbadge" style="background:var(--flag);color:var(--ink)">${idx+1}</span>
       <span class="rankicon">${AREA_ICON[areaId]}</span>
-      <span style="flex:1;font-weight:600;font-size:14.5px">${areaLabel(areaId)}</span>
+      <span class="rankname">${areaLabel(areaId)}</span>
       <div class="rankarrows">
         <button ${idx===0?'disabled':''} onclick="moveRank(draftStartOrder,${idx},-1)">↑</button>
         <button ${idx===draftStartOrder.length-1?'disabled':''} onclick="moveRank(draftStartOrder,${idx},1)">↓</button>
@@ -573,7 +574,7 @@ function renderProfileForm(isOnboarding){
     <div class="rankrow2" draggable="true" ondragstart="dragStart(${idx})" ondragover="event.preventDefault()" ondrop="dropAt(${idx})">
       <span class="rankbadge">${idx+1}</span>
       <span class="rankicon">${AREA_ICON[areaId]}</span>
-      <span style="flex:1;font-weight:600;font-size:14.5px">${areaLabel(areaId)}</span>
+      <span class="rankname">${areaLabel(areaId)}</span>
       <div class="rankarrows">
         <button ${idx===0?'disabled':''} onclick="moveRank(draftRanking,${idx},-1)">↑</button>
         <button ${idx===draftRanking.length-1?'disabled':''} onclick="moveRank(draftRanking,${idx},1)">↓</button>
@@ -607,12 +608,12 @@ function renderProfileForm(isOnboarding){
       <button type="button" class="tabbtn ${draftMode==='untimed'?'active':''}" onclick="setDraftMode('untimed')">Untimed</button>
     </div>
     ${draftMode!=='untimed' ? `<label>Average session length (minutes)</label><input type="number" id="f_session" value="${p.sessionLength}" min="15" max="240" step="5">` : '<p class="muted" style="margin-top:8px">Drills run until you hit the success mark — no clock.</p>'}
-    <label>How do you like to start practice?</label>
-    <p class="muted" style="margin-top:-3px">Use the arrows to set the order you warm up through. Your plan follows this flow.</p>
-    <div>${startRows}</div>
-    <label style="margin-top:18px">Rank what to work on</label>
-    <p class="muted" style="margin-top:-3px">Use the arrows. Most work needed goes at #1.</p>
-    <div>${rankRows}</div>
+    <h2 style="margin-top:26px;font-size:20px">How do you like to start practice?</h2>
+    <p class="muted" style="margin-top:2px;font-size:14px">Use the arrows to set the order you warm up through. Your plan follows this flow.</p>
+    <div style="margin-top:10px">${startRows}</div>
+    <h2 style="margin-top:26px;font-size:20px">Rank what to work on</h2>
+    <p class="muted" style="margin-top:2px;font-size:14px">Use the arrows. Most work needed goes at #1.</p>
+    <div style="margin-top:10px">${rankRows}</div>
     <button class="btn" style="margin-top:14px" onclick="saveProfileForm()">${isOnboarding?'Save & Build My Plan':'Save Changes'}</button>
   `;
 }
