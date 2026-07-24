@@ -248,6 +248,10 @@ try{
   cloudReady = true;
 }catch(e){ console.error('Firebase init failed — running device-only', e); }
 
+/* Only this account can approve drill suggestions. */
+const ADMIN_EMAIL = 'badlaniaarav@gmail.com';
+function isAdmin(){ return !!(cloudReady && currentUser && currentUser.email && currentUser.email.toLowerCase()===ADMIN_EMAIL); }
+
 function gatherLocalData(){ const d={}; CLOUD_KEYS.forEach(k=>{ const v=localStorage.getItem(k); if(v!=null) d[k]=v; }); return d; }
 function scheduleCloudSync(){
   if(!cloudReady || !currentUser) return;
@@ -312,8 +316,9 @@ function captureProfileFields(){
 }
 let timerInterval=null, sessionInterval=null;
 
+function communityDrills(){ return (state.approvedSuggestions||[]).map(s=>({id:'sug_'+s.id, area:s.area, name:s.name, description:s.description||'', setup:'Community drill — suggested by '+(s.author||'a golfer')+'.', repsOrTime:'As needed', success:'Give it a go and track how you do.', difficulty:'Intermediate', community:true})); }
 function allDrills(){ const sw=(state.swingWork||[]).map(s=>({id:'sw_'+s.id, area:s.area, name:s.name, description:s.description||'Personal swing work', setup:'Your own notes — from My Swing Work.', repsOrTime:'As needed', success:'Your own goal for this rep.', difficulty:'Personal', swingWork:true}));
-  return DRILLS.concat(state.customDrills).concat(sw); }
+  return DRILLS.concat(state.customDrills).concat(communityDrills()).concat(sw); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -594,22 +599,37 @@ async function addSwingWork(){
 }
 async function removeSwingWork(id){ state.swingWork = state.swingWork.filter(s=>s.id!==id); await persistActivity(); render(); }
 
-async function loadSuggestions(){
-  try{ const list = await window.storage.list('suggestion:', true); const items=[];
-    for(const k of (list?.keys||[])){ try{ const r=await window.storage.get(k, true); if(r) items.push({...JSON.parse(r.value), key:k}); }catch(e){} }
-    state.suggestions = items.sort((a,b)=>b.ts-a.ts);
-  }catch(e){ state.suggestions=[]; }
+async function loadApprovedSuggestions(){
+  if(!cloudReady){ state.approvedSuggestions=[]; return; }
+  try{ const snap = await fbDb.collection('suggestions').where('status','==','approved').get();
+    state.approvedSuggestions = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  }catch(e){ console.error('load approved failed', e); state.approvedSuggestions=[]; }
+}
+async function loadPendingSuggestions(){
+  if(!isAdmin()){ state.pendingSuggestions=[]; return; }
+  try{ const snap = await fbDb.collection('suggestions').where('status','==','pending').get();
+    state.pendingSuggestions = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  }catch(e){ console.error('load pending failed', e); state.pendingSuggestions=[]; }
 }
 async function submitSuggestion(){
-  const area = document.getElementById('sug_area').value, name=document.getElementById('sug_name').value.trim(), description=document.getElementById('sug_desc').value.trim(), author=document.getElementById('sug_author').value.trim();
-  if(!name||!description) return;
-  const id = 'suggestion:'+Date.now()+'_'+Math.floor(Math.random()*1000);
-  try{ await window.storage.set(id, JSON.stringify({name,area,description,author,ts:Date.now()}), true); setToast('Thanks — submitted!'); await loadSuggestions(); }catch(e){ setToast('Could not submit, try again'); }
+  if(!cloudReady || !currentUser){ setToast('Please sign in first'); return; }
+  const area=document.getElementById('sug_area').value, name=(document.getElementById('sug_name').value||'').trim(), description=(document.getElementById('sug_desc').value||'').trim();
+  if(!name||!description){ setToast('Add a drill name and description'); return; }
+  try{
+    await fbDb.collection('suggestions').add({ area, name, description, author:(state.profile&&state.profile.displayName)||'A golfer', authorEmail:currentUser.email||'', uid:currentUser.uid, status:'pending', ts:Date.now() });
+    setToast('Thanks — sent for review!');
+    document.getElementById('sug_name').value=''; document.getElementById('sug_desc').value='';
+  }catch(e){ console.error('submit failed', e); setToast('Could not submit, try again'); }
   render();
 }
-async function deleteSuggestion(key){
-  try{ await window.storage.delete(key, true); await loadSuggestions(); setToast('Removed'); }catch(e){ setToast('Could not remove'); }
-  render();
+async function approveSuggestion(id){
+  try{ await fbDb.collection('suggestions').doc(id).update({status:'approved', approvedAt:Date.now()}); setToast('Approved — now in the Library ✓'); await loadPendingSuggestions(); await loadApprovedSuggestions(); render(); }
+  catch(e){ console.error('approve failed', e); setToast('Could not approve'); }
+}
+async function rejectSuggestion(id){
+  if(!confirm('Reject and delete this suggestion?')) return;
+  try{ await fbDb.collection('suggestions').doc(id).delete(); setToast('Rejected'); await loadPendingSuggestions(); render(); }
+  catch(e){ console.error('reject failed', e); setToast('Could not reject'); }
 }
 async function copyExportLog(){ const t=document.getElementById('export_text'); t.select(); try{ await navigator.clipboard.writeText(t.value); setToast('Copied!'); }catch(e){ setToast('Select the text and copy manually'); } }
 
@@ -621,7 +641,8 @@ async function addDrillToToday(drillId){ ensureTodayPlan(); const d=allDrills().
 function switchView(v){
   state.view=v;
   if(v==='today') ensureTodayPlan();
-  if(v==='suggest'){ state.suggestionsLoading=true; render(); loadSuggestions().then(()=>{state.suggestionsLoading=false; render();}); return; }
+  if(v==='suggest'){ state.suggestionsLoading=true; render(); loadApprovedSuggestions().then(()=>{state.suggestionsLoading=false; render();}); return; }
+  if(v==='review'){ state.suggestionsLoading=true; render(); loadPendingSuggestions().then(()=>{state.suggestionsLoading=false; render();}); return; }
   render();
 }
 
@@ -649,7 +670,7 @@ function render(){
   const el = document.getElementById('content');
   const map = {auth:renderAuth, onboarding:()=>renderProfileForm(true), profile_edit:()=>renderProfileForm(false), profile:renderProfileSummary,
     today:renderToday, library:renderLibrary, games:renderGames, buildplan:renderBuildPlan,
-    swingwork:renderSwingWork, suggest:renderSuggest, exportlog:renderExportLog, drilldetail:renderDrillDetail, gamedetail:renderGameDetail, practicetime:renderPracticeTime};
+    swingwork:renderSwingWork, suggest:renderSuggest, review:renderReview, exportlog:renderExportLog, drilldetail:renderDrillDetail, gamedetail:renderGameDetail, practicetime:renderPracticeTime};
   el.innerHTML = (map[state.view]||(()=>'<div class="empty">Loading…</div>'))();
   document.getElementById('navbar').innerHTML = state.profile ? renderNav() : '';
   if(state.toast){ const t=document.createElement('div'); t.className='toast'; t.id='toast'; t.textContent=state.toast; document.getElementById('app').appendChild(t); }
@@ -757,6 +778,7 @@ function renderProfileSummary(){
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('swingwork')">My Swing Work (private)</button>
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('practicetime')">Practice Time</button>
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('suggest')">Suggest a Drill</button>
+  ${isAdmin()?`<button class="btn" style="margin-top:8px;background:var(--flag);color:var(--ink)" onclick="switchView('review')">🛠️ Review Suggestions</button>`:''}
   <button class="btn secondary" style="margin-top:8px" onclick="switchView('exportlog')">Export Practice Log for Coach</button>
   ${currentUser?`<button class="btn secondary" style="margin-top:18px" onclick="signOutUser()">Sign Out</button>`:''}
   <button class="btn danger" style="margin-top:8px" onclick="resetAll()">Reset App Data</button>`;
@@ -894,7 +916,7 @@ function renderLibrary(){
   const options = `<option value="all">All areas</option><option value="fav" ${f==='fav'?'selected':''}>★ Favorites</option>` + AREAS.map(a=>`<option value="${a.id}" ${f===a.id?'selected':''}>${a.label}</option>`).join('');
   const list = drills.map(d=>{ const fav=state.favorites.includes(d.id);
     return `<div class="card">
-      <div class="rowline"><strong onclick="openDrill('${d.id}','library')" style="cursor:pointer;flex:1">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
+      <div class="rowline"><strong onclick="openDrill('${d.id}','library')" style="cursor:pointer;flex:1">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.community?' <span class=\"perfbadge\" style=\"background:var(--fairway);color:var(--chalk)\">👥 Community</span>':''}${d.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
       <div onclick="openDrill('${d.id}','library')" style="cursor:pointer">
         <span class="pill" style="margin:6px 0;display:inline-block">${areaLabel(d.area)}</span>
         <p class="muted">${escapeHtml(d.description)}</p>
@@ -1001,14 +1023,22 @@ function renderSwingWork(){
 }
 
 function renderSuggest(){
-  const rows = (state.suggestions||[]).map(s=>`<div class="card"><div class="rowline"><span class="pill">${areaLabel(s.area)}</span><button class="starbtn" onclick="deleteSuggestion('${s.key}')">✕</button></div><h2 style="margin-top:6px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">suggested by ${escapeHtml(s.author||'a golfer')}</p></div>`).join('') || '<div class="empty">No suggestions yet — be the first!</div>';
-  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Suggest a Drill</h1><p class="muted">Jot down a drill idea to remember later. Saved on this device only.</p>
+  const approved = state.approvedSuggestions||[];
+  const rows = approved.map(s=>`<div class="card"><span class="pill">${areaLabel(s.area)}</span><h2 style="margin-top:8px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">suggested by ${escapeHtml(s.author||'a golfer')}</p></div>`).join('') || '<div class="empty">No community drills yet — suggest the first!</div>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Suggest a Drill</h1><p class="muted">Share a drill idea. It's sent for review, and once approved it shows up in everyone's Library.</p>
   <label>Area</label><select id="sug_area">${AREAS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
-  <label>Drill name</label><input type="text" id="sug_name">
-  <label>Description</label><textarea id="sug_desc"></textarea>
-  <label>Your name (optional)</label><input type="text" id="sug_author">
-  <button class="btn" style="margin-top:12px" onclick="submitSuggestion()">Submit Suggestion</button>
-  <div class="divider"></div><h2>Community Suggestions</h2>${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
+  <label>Drill name</label><input type="text" id="sug_name" placeholder="e.g. Clock Face Putting">
+  <label>Description</label><textarea id="sug_desc" placeholder="How it works and what to aim for"></textarea>
+  <button class="btn" style="margin-top:12px" onclick="submitSuggestion()">Submit for Review</button>
+  <div class="divider"></div><h2>Community Drills</h2><p class="muted" style="margin-bottom:10px">Approved drills from other golfers — these are also in your Library.</p>${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
+}
+function renderReview(){
+  if(!isAdmin()) return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><div class="empty">This area is for the admin only.</div>`;
+  const pending = state.pendingSuggestions||[];
+  const rows = pending.map(s=>`<div class="card"><span class="pill">${areaLabel(s.area)}</span><h2 style="margin-top:8px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">from ${escapeHtml(s.author||'a golfer')}${s.authorEmail?' · '+escapeHtml(s.authorEmail):''}</p>
+    <div class="rowline" style="margin-top:10px;gap:8px"><button class="btn small" style="flex:1" onclick="approveSuggestion('${s.id}')">✓ Approve</button><button class="btn small danger" style="flex:1;width:auto" onclick="rejectSuggestion('${s.id}')">✕ Reject</button></div></div>`).join('') || '<div class="empty">No suggestions waiting for review. 🎉</div>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Review Suggestions</h1><p class="muted">Approve to publish a drill to everyone's Community Drills, or reject to delete it.</p>
+  ${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
 }
 
 function buildExportText(){
@@ -1062,6 +1092,7 @@ async function init(){
   state.seenToday = await sGet('seen-today', null);
   state.view = state.profile ? 'today' : 'onboarding';
   render();
+  loadApprovedSuggestions().then(render);   // pull approved community drills into the Library
 }
 
 /* Startup: when accounts are available, auth state decides what shows.
