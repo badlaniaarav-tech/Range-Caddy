@@ -436,7 +436,13 @@ function setToast(msg){ state.toast=msg; render(); setTimeout(()=>{ state.toast=
 function plannedMinutesFor(drillId){ if(!state.planCache) return null; const it=state.planCache.items.find(i=>i.drillId===drillId); return it?it.minutes:null; }
 async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=todayStr(); const idx=state.completions.findIndex(c=>c.date===t&&c.drillId===drillId);
   const wasComplete = idx>=0;
-  if(idx>=0){ state.completions.splice(idx,1); }
+  if(idx>=0){
+    // Un-checking (e.g. a mis-click): roll the timing baseline back so the next drill's time isn't restarted.
+    const removed = state.completions[idx];
+    const st = state.profile && state.profile.sessionTimer;
+    if(st && removed && removed.tookSeconds!=null && st.lastMark!=null){ st.lastMark = Math.max(0, st.lastMark - removed.tookSeconds); await persistProfile(); }
+    state.completions.splice(idx,1);
+  }
   else {
     const mins = (loggedMinutes!=null?loggedMinutes:null);
     // If the session timer is running, note how long this drill took (time since the last check-off) — shown, but NOT added to logged time.
