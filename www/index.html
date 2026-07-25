@@ -396,17 +396,20 @@ function computePlan(dateStr, minutes, salt, excludeIds){
   order.forEach(areaId=>{
     let m = minutesPerArea[areaId];
     if(areaId===profile.startArea) m = Math.max(m,10);
-    if(m<5) return;
     let pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed && !d.performance), profile);
     if(!pool.length) return;
     if(excludeIds && excludeIds.length){ const fresh=pool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) pool=fresh; }
     const favs = pool.filter(d=>favorites.includes(d.id));
     const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
-    let numDrills = m>=20?2:1;
-    if(areaId===ranking[0]) numDrills += 2;   // give the weakest area (most to practice) extra drills
+    // Minimum drill counts: putting always gets at least 3, every other area at least 2 —
+    // including the golfer's most-needed (top-ranked) area — never fewer, whatever the time budget.
+    const minForArea = areaId==='putting' ? 3 : 2;
+    let numDrills = Math.max(minForArea, m>=20?2:1);
+    numDrills = Math.min(numDrills, pool.length);
     const chosen = [...favs, ...rest].slice(0,numDrills);
     if(areaId==='putting' && areaId===order[0]) items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:10,fixed:true});
-    chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:Math.max(5,Math.round(m/numDrills)), fixed:false}));
+    const perDrillMin = Math.max(5, Math.round((m||numDrills*8)/numDrills));
+    chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:perDrillMin, fixed:false}));
   });
   if(!items.length){ const top=ranking[0]; const pool=allDrills().filter(d=>d.area===top&&!d.fixed&&!d.performance); if(pool.length) items.push({key:top+'_'+pool[0].id,area:top,drillId:pool[0].id,minutes:total,fixed:false}); }
   // performance drills — kept out of the main session, shown in the Performance section (weakest areas first, up to 3)
@@ -901,7 +904,7 @@ function renderToday(){
         <strong>${escapeHtml(d.name)}</strong>
         <p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p>
         <p class="reps">🎯 ${escapeHtml(d.repsOrTime)}</p>${targetTweak()}
-        ${took!=null?`<p class="muted" style="font-size:11.5px;margin-top:3px">⏱ Took ${fmtTime(took)} <span style="opacity:.7">(not added to your time)</span></p>`:''}
+        ${took!=null?`<p class="muted" style="font-size:11.5px;margin-top:3px">⏱ Took ${fmtTime(took)}</p>`:''}
       </div>
       <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>${added?`<button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removePlanItem('${item.key}')">Remove</button>`:''}</div>
     </div>`;
