@@ -43,6 +43,8 @@ p{margin:0 0 8px;line-height:1.45;}
 .card.focus{border-left:4px solid var(--flag);}
 .rowline{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .pill{display:inline-block;background:var(--fairway);color:var(--chalk);font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.diffbtn{font-family:'Inter',sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;border:1.5px solid var(--fairway);background:var(--paper);color:var(--fairway);cursor:pointer;}
+.diffbtn.active{background:var(--fairway);color:var(--chalk);}
 .perfbadge{display:inline-block;background:var(--flag);color:var(--ink);font-size:10.5px;font-weight:700;padding:2px 8px 2px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;white-space:nowrap;}
 .eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fairway);font-weight:600;}
 .btn{font-family:'Inter',sans-serif;font-weight:700;font-size:15px;background:var(--fairway);color:var(--chalk);border:none;border-radius:14px;padding:13px 16px;cursor:pointer;width:100%;}
@@ -118,7 +120,7 @@ const ICON_CALENDAR = `<svg width="17" height="17" viewBox="0 0 24 24" fill="non
 const areaLabel = id => (AREAS.find(a=>a.id===id)||{}).label || id;
 
 const DRILLS = [
-{id:'putt_calibration',area:'putting',fixed:true,name:'Stroke Calibration',description:"Calibrate your putting stroke with a Visio putting mat, a putting mirror, or David Pelz's Putting Tutor.",setup:'Use a putting mirror, Visio putting mat, or Putting Tutor (lay a towel down first to protect the green).',repsOrTime:'5 min',success:'Consistent face angle and path at impact',difficulty:'Beginner'},
+{id:'putt_calibration',area:'putting',fixed:true,name:'Stroke Calibration',description:"Calibrate your putting stroke with a Visio putting mat, a putting mirror, or David Pelz's Putting Tutor.",setup:'Use a putting mirror, Visio putting mat, or Putting Tutor (lay a towel down first to protect the green).',repsOrTime:'10 min',success:'Consistent face angle and path at impact',difficulty:'Beginner'},
 {id:'p1',area:'putting',name:'4-6 Redemption',description:'Build pressure with a ring of short putts and one bail-out putt per corner.',setup:'Tees at 4 ft and 6 ft around the hole; add a 9 ft "redemption" tee at each corner.',repsOrTime:'1-2 balls per tee, work around the hole',success:'Clear every tee, using each redemption putt at most once',difficulty:'Intermediate'},
 {id:'p2',area:'putting',name:'3-5-7 Ladder',description:'Climb back from the hole only after proving you can make a short one.',setup:'Tees at 3, 5 and 7 ft.',repsOrTime:'2-3 makes in a row per distance before moving back',success:'2-3 in a row at each distance',difficulty:'Beginner'},
 {id:'p3',area:'putting',name:'16-Putt Gauntlet',description:'A volume short-putt test from four sides of the hole plus two longer pressure putts.',setup:'14 tees at 3-5 ft around the hole, plus two 8 ft putts.',repsOrTime:'1 ball per tee, 16 putts total',success:'Make 13 of 16',difficulty:'Advanced'},
@@ -204,11 +206,20 @@ const GAMES = [
 {id:'g_best',name:'Best Ball Solo',players:'Solo · On-course',description:'Hit two balls on every shot and always play the better one.',how:'Builds confidence and lets you experiment with a second look at tough shots.'},
 {id:'g_par3',name:'Par 3 Day',players:'Solo · On-course',description:'Play every hole as if it were a par 3 from a fixed yardage.',how:'Pick one yardage (e.g. 150) and hit from there on every hole — pure iron and scoring practice.'},
 {id:'g_even',name:'Even or Better',players:'Solo · On-course',description:'See if you can keep your score at even par or better if birdies did not count.',how:'A mental-game test in managing bogeys and staying patient all round.'},
-{id:'g_3ball',name:'3-Ball Scramble',performance:true,players:'Solo · On-course',description:'A confidence-building scramble where you get up to three looks at every shot.',how:'On every shot, hit your first ball — keep it if you like it, or hit a second. You may then choose between those two. If you still don\'t like either, you can hit a third, but you must take that one. Play the whole round this way.'}
+{id:'g_3ball',name:'3-Ball Scramble',performance:true,players:'Solo · On-course',description:'A confidence-building scramble where you get up to three looks at every shot.',how:'On every shot, hit your first ball — keep it if you like it, or hit a second. You may then choose between those two. If you still don\'t like either, you can hit a third, but you must take that one. Play the whole round this way.'},
+{id:'g_par9',name:'Par or Better (9 Holes)',performance:true,players:'Solo · On-course',description:'A focused 9-hole scoring challenge — shoot level par or better.',how:'Play any 9 holes and try to finish at even par or under. Track your score against par and try to beat it every time you play it.'},
+{id:'g_diffclub',name:'Different Club Off Every Tee',players:'Solo · On-course',description:'Build creativity and distance control by never hitting the same tee club twice.',how:'On each par 4 and par 5, tee off with a different club than you would normally hit that hole. You will shape shots and manage distances you do not usually face.'},
+{id:'g_updown',name:'Up & Down Challenge',performance:true,players:'Solo · On-course',description:'A round-long scrambling test that mirrors real short-game pressure.',how:'Any time you miss a green, drop a ball in a tough spot nearby and try to get up and down. Track how many of your misses you save over 18 — that is your scramble percentage.'},
+{id:'g_stableford',name:'Stableford (Points)',performance:true,players:'Solo · On-course',description:'Score by points instead of strokes so one blow-up hole never wrecks the round.',how:'Points per hole: eagle 5, birdie 4, par 2, bogey 1, double or worse 0. Play aggressively, add up your total, and set a points goal to beat.'},
+{id:'g_bogey',name:'Bogey or Better',performance:true,players:'Solo · On-course',description:'A patience and course-management test — no blow-up holes allowed.',how:'Goal: make bogey or better on every hole, with one pick-up allowed per nine. If you are about to go past bogey, pick up and move on. See how long a streak you can string together.'}
 ];
 const PRACTICE_GAMES = [
 {id:'g_21',name:'21',performance:true,players:'2+',description:'A closest-to-the-pin chipping game played to 21 points.',how:'Each player chips (2 balls each) from a shared spot to the pin. Closest scores 2 points, second closest scores 1. A chip-in scores 5 points instead of the normal 2 — but the second-closest player still only scores 1. Rotate to a new spot each round. First to 21 (or over) wins.'},
-{id:'g_hurricane',name:'Hurricane',performance:true,players:'Solo',description:'A make-everything pressure test from short range.',how:'Place balls at every distance from 2 to 8 ft around the hole. Make every single one to clear the hurricane — miss and you start over.'}
+{id:'g_hurricane',name:'Hurricane',performance:true,players:'Solo',description:'A make-everything pressure test from short range.',how:'Place balls at every distance from 2 to 8 ft around the hole. Make every single one to clear the hurricane — miss and you start over.'},
+{id:'g_flags',name:'Flags Only',players:'Solo · Range',description:'Turn aimless range balls into real, target-focused reps.',how:'Every ball must be aimed at a specific flag at its true yardage — pick the flag, pick the club, and commit. No lazy swings. Great for learning your real carry numbers.'},
+{id:'g_atw',name:'Around the World',performance:true,players:'Solo · Short game',description:'A scored up-and-down test from all around the green.',how:'Pick 10 spots in a circle around a practice green. From each, try to get up and down in two. Count how many of the 10 you convert and beat your best.'},
+{id:'g_shotcaller',name:'Shot Caller',performance:true,players:'Solo · Range',description:'Commit to a full shot before every ball, just like on the course.',how:'Before each ball, call it out loud — club, shape, trajectory and target. Score a point for every shot you actually pull off. First to 10 points.'},
+{id:'g_bullseye',name:'Bullseye',performance:true,players:'Solo · Range',description:'A points game that rewards dialed-in distance and accuracy.',how:'Pick a target and imagine rings around it (5, 10, 15 ft). Hit 15 balls: 3 points inside the 5 ft ring, 2 inside 10 ft, 1 inside 15 ft. Aim for a total and beat it.'}
 ];
 const ALL_GAMES = GAMES.concat(PRACTICE_GAMES);
 function findGame(id){ return ALL_GAMES.find(g=>g.id===id); }
@@ -357,7 +368,7 @@ function selectTodayGames(favorites, rand){
   const pickPool = (pool)=>{ const fav=pool.filter(g=>favorites.includes(g.id)).map(g=>g.id); const rest=pool.filter(g=>!favorites.includes(g.id)).map(g=>g.id).sort(()=>rand()-0.5); return [...fav, ...rest]; };
   const courseGame = pickPool(GAMES)[0];
   const perfGames = pickPool(ALL_GAMES.filter(g=>g.performance && g.id!==courseGame)).slice(0,2);
-  return [courseGame, ...perfGames].filter(Boolean);
+  return [...perfGames, courseGame].filter(Boolean);   // on-course game shown last
 }
 function computePlan(dateStr, minutes, salt, excludeIds){
   const {ranking, profile, favorites} = state;
@@ -380,9 +391,10 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     if(excludeIds && excludeIds.length){ const fresh=pool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) pool=fresh; }
     const favs = pool.filter(d=>favorites.includes(d.id));
     const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
-    const numDrills = m>=20?2:1;
+    let numDrills = m>=20?2:1;
+    if(areaId===ranking[0]) numDrills += 2;   // give the weakest area (most to practice) extra drills
     const chosen = [...favs, ...rest].slice(0,numDrills);
-    if(areaId==='putting' && areaId===order[0]) items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:5,fixed:true});
+    if(areaId==='putting' && areaId===order[0]) items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:10,fixed:true});
     chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:Math.max(5,Math.round(m/numDrills)), fixed:false}));
   });
   if(!items.length){ const top=ranking[0]; const pool=allDrills().filter(d=>d.area===top&&!d.fixed&&!d.performance); if(pool.length) items.push({key:top+'_'+pool[0].id,area:top,drillId:pool[0].id,minutes:total,fixed:false}); }
@@ -394,6 +406,7 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     if(excludeIds && excludeIds.length){ const fresh=ppool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) ppool=fresh; }
     if(ppool.length){ const pick=ppool[Math.floor(rand()*ppool.length)]; perfDrills.push({key:'perf_'+pick.id, area:areaId, drillId:pick.id}); }
   });
+  perfDrills.sort((a,b)=>order.indexOf(a.area)-order.indexOf(b.area));   // show in the golfer's preferred practice order
   const games = selectTodayGames(favorites, rand);
   (state.swingWork||[]).filter(s=>s.autoAdd).forEach(s=>{ items.push({key:'sw_'+s.id, area:s.area, drillId:'sw_'+s.id, minutes:10, fixed:false, swingWork:true}); });
   return {date:dateStr, minutes:total, salt:salt||'', items, perfDrills, games, mode:'auto'};
@@ -507,6 +520,15 @@ async function regenerateToday(){
   await sSet('plan-cache', state.planCache); render();
 }
 async function regenTodayWithMinutes(){ state.planCache = computePlan(todayStr(), state.todayMinutes, state.planCache?state.planCache.salt:''); await sSet('plan-cache', state.planCache); render(); }
+async function setDifficultyPref(pref){
+  if(!state.profile || state.profile.difficultyPref===pref) return;
+  state.profile.difficultyPref = pref;
+  await persistProfile();
+  state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), seenIdsForToday());
+  markPlanSeen(state.planCache);
+  await sSet('plan-cache', state.planCache);
+  setToast(pref==='harder'?'Drills bumped up a level':pref==='easier'?'Drills eased off a level':'Back to your target level'); render();
+}
 function adjustMinutes(delta){ state.todayMinutes = Math.max(15,(state.todayMinutes||state.profile.sessionLength)+delta); regenTodayWithMinutes(); }
 function setCustomMinutes(){ const v=parseInt(document.getElementById('custom_min').value); if(v>0){ state.todayMinutes=v; regenTodayWithMinutes(); } }
 async function toggleSessionMode(){ state.profile.sessionMode = state.profile.sessionMode==='untimed'?'timed':'untimed'; await persistProfile(); render(); }
@@ -825,12 +847,19 @@ function renderToday(){
     ${st ? timerRow : ''}
     </div>`;
 
+  const dpref = state.profile.difficultyPref || 'normal';
   const sessionHeader = `
     <div class="rowline"><h2>Your Session</h2>
       <div style="display:flex;gap:12px">
         ${state.swapMode ? `<button class="linkbtn" onclick="swapSelected()">Swap (${state.swapSelection.size})</button><button class="linkbtn" onclick="toggleSwapMode()">Cancel</button>`
           : `<button class="linkbtn" onclick="toggleSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateToday()">Regenerate all</button>`}
       </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <span class="muted" style="font-size:12px">Difficulty:</span>
+      <button class="diffbtn ${dpref==='easier'?'active':''}" onclick="setDifficultyPref('easier')">Easier</button>
+      <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Target</button>
+      <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Harder</button>
     </div>
     <p class="muted" style="margin-bottom:10px"><button class="linkbtn" onclick="switchView('buildplan')">Build your own plan instead →</button></p>`;
 
@@ -909,7 +938,7 @@ function renderToday(){
   <div class="card" style="margin-top:8px"><div class="rowline"><span class="num" style="font-size:30px">${doneToday}/${plan.items.length}</span>
   <div style="text-align:right"><div>🔥 <strong>${streak}</strong> day streak</div><div class="muted" style="font-size:12px">${untimed?'Untimed session':plan.minutes+' min session'}</div></div></div>
   <p class="muted" style="margin-top:8px">Focus: ${focusAreas}</p></div>
-  ${timeCard}${sessionHeader}${cards}${addPanel}${gamesSection}`;
+  ${timeCard}${sessionHeader}${cards}${addPanel}${(plan.perfDrills&&plan.perfDrills.length)?`<p class="muted" style="text-align:center;font-size:11px;margin:8px 0 0;opacity:.85">Performance drills below ↓</p>`:''}${gamesSection}`;
 }
 
 function renderBuildPlan(){
