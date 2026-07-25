@@ -45,6 +45,7 @@ p{margin:0 0 8px;line-height:1.45;}
 .pill{display:inline-block;background:var(--fairway);color:var(--chalk);font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;}
 .diffbtn{font-family:'Inter',sans-serif;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:20px;border:1.5px solid var(--fairway);background:var(--paper);color:var(--fairway);cursor:pointer;}
 .diffbtn.active{background:var(--fairway);color:var(--chalk);}
+.difftag{display:inline-block;margin-top:2px;font-size:11.5px;font-weight:700;color:var(--flag-dark);}
 .perfbadge{display:inline-block;background:var(--flag);color:var(--ink);font-size:10.5px;font-weight:700;padding:2px 8px 2px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;white-space:nowrap;}
 .eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fairway);font-weight:600;}
 .btn{font-family:'Inter',sans-serif;font-weight:700;font-size:15px;background:var(--fairway);color:var(--chalk);border:none;border-radius:14px;padding:13px 16px;cursor:pointer;width:100%;}
@@ -141,7 +142,7 @@ const DRILLS = [
 {id:'c8',area:'chipping',name:'Chipping Ladder',performance:true,description:'Land the ball in progressively deeper zones and back down without a miss.',setup:'Place a club or alignment stick every 3 ft from 10 ft out to 22 ft.',repsOrTime:'Land a ball in every zone, going up and back down the ladder',success:'Complete the full ladder; any miss restarts you',difficulty:'Advanced'},
 {id:'w1',area:'wedges_pitching',name:'Yardage Ladder',description:'Build feel for controlling distance with one club.',setup:'Pick one wedge and 4-5 increasing yardages (e.g. 80-120 in 10yd steps).',repsOrTime:'1 ball per yardage, in order',success:'Complete the ladder without missing a yardage badly',difficulty:'Intermediate'},
 {id:'w2',area:'wedges_pitching',name:'Three Swings, One Club',description:'Learn three distances off one swing.',setup:'One wedge; half, three-quarter and full swing lengths.',repsOrTime:'5 balls per swing length',success:'Consistent, repeatable yardage gaps between the three lengths',difficulty:'Intermediate'},
-{id:'w3',area:'wedges_pitching',name:'Trajectory Windows',description:'Same yardage, three different ball flights.',setup:'One target yardage.',repsOrTime:'5 balls each at low, standard and high flight',success:'All three flights finish within your target radius',difficulty:'Advanced'},
+{id:'w3',area:'wedges_pitching',name:'Trajectory Windows',description:'Same yardage, three different ball flights.',setup:'One target yardage.',repsOrTime:'10 good balls each at low, standard and high flight',success:'10 good balls at each of the three flights, all finishing within your target radius',difficulty:'Advanced'},
 {id:'b1',area:'bunker',name:'Line Drill',description:'Groove a consistent entry point before you hit a ball for real.',setup:'Draw a line in the sand; take a practice swing brushing the same spot between shots.',repsOrTime:'10 shots, practice swing between each',success:'Consistent entry point and clean contact',difficulty:'Beginner'},
 {id:'b2',area:'bunker',name:'Leapfrog',description:'Build feel for speed and distance control out of sand.',setup:'Any bunker with room to vary distance.',repsOrTime:'Each shot must finish farther than the last',success:'Set a new personal-record distance streak',difficulty:'Intermediate'},
 {id:'b3',area:'bunker',name:'Club Comparison',description:'Feel how loft changes trajectory and spin from the same lie.',setup:'PW through your lob wedge, same lie and target.',repsOrTime:'3 balls per club',success:'Notice and describe the trajectory difference between clubs',difficulty:'Intermediate'},
@@ -194,7 +195,6 @@ const DRILLS = [
 {id:'b5',area:'bunker',name:'2x4 Bunker Drill',description:'Learn to use the bounce of the club instead of digging the leading edge into the sand.',setup:'Set up for a normal splash shot with an open clubface.',repsOrTime:'10 shots, focused purely on the club skimming through the sand',success:"The club's trailing edge contacts the sand first on every shot, no digging",difficulty:'Advanced'},
 {id:'b6',area:'bunker',name:'Foot Depth Drill',description:'Feel how digging your feet in deeper changes trajectory, spin and how much sand you take.',setup:'Hit the same shot 3 times: barely settled in, ankle-deep, and in between.',repsOrTime:'3 balls per foot depth',success:'Notice and describe how each depth changes ball flight and spin',difficulty:'Intermediate'},
 {id:'b7',area:'bunker',name:'9-Ball Up & Down',performance:true,description:'A scored bunker game that mimics real greenside pressure.',setup:'Drop 9 balls in varied bunker lies around the green.',repsOrTime:'9 up-and-down attempts, holing out every time',success:'Track how many of the 9 you get up and down; beat your best next time',difficulty:'Advanced'},
-{id:'si4',area:'short_irons',name:'Floatie Connection Drill',description:'Shorten and control your backswing while keeping the clubface square.',setup:'Tuck a pool floatie (or small pillow) under your back arm.',repsOrTime:'10 swings without dropping the floatie',success:'Floatie stays in place through the whole swing, with a square face at impact',difficulty:'Beginner'},
 {id:'si5',area:'short_irons',name:'Gate Strike Drill',description:'Groove a clean path and center-face contact on full short-iron swings.',setup:'Set 2 tees just wider than your clubhead, right where the ball sits.',repsOrTime:'10 balls through the gate',success:'Strike through without touching either tee, every time',difficulty:'Intermediate'},
 {id:'si6',area:'short_irons',name:'Mini-Swing Drill',description:'Build a compact, controlled short-iron motion with the wrists staying ahead of the clubhead.',setup:'Address the ball and swing only from waist-high to waist-high.',repsOrTime:'10 balls',success:'Crisp, ball-first contact on every mini-swing',difficulty:'Beginner'},
 {id:'d7',area:'driver_woods',name:'Path Gate Drill',description:'Train a repeatable swing path through the ball with the driver.',setup:'Set 2 alignment sticks a few feet in front of the ball, just wider than your clubhead, forming a gate.',repsOrTime:'10 drives',success:'Swing through the gate without touching either stick',difficulty:'Intermediate'},
@@ -347,9 +347,13 @@ function handicapTier(hcp){ if(/scratch/i.test(String(hcp))) return 2; const n=p
 function targetTier(profile){ if(!profile) return 1;
   let t = handicapTier(profile.handicap);
   if(profile.skillLevel && profile.skillLevel!=='auto'){ t = {beginner:0,intermediate:1,advanced:2}[profile.skillLevel]; }
-  if(profile.difficultyPref==='easier') t-=1; else if(profile.difficultyPref==='harder') t+=1;
   return Math.max(0, Math.min(2, t));
 }
+// Easier/Harder doesn't swap the drills — it only nudges the target. This note is shown on each drill's goal.
+function targetTweak(){ const p=state.profile&&state.profile.difficultyPref;
+  if(p==='harder') return ' <span class="difftag">Harder — push it: add reps or tighten your success margin</span>';
+  if(p==='easier') return ' <span class="difftag">Easier — ease it: fewer reps or a wider margin</span>';
+  return ''; }
 // keep drills at/below the target tier; if none, fall back to closest
 function filterByDifficulty(pool, profile){ if(!pool.length) return pool; const t=targetTier(profile);
   let ok = pool.filter(d=>(DIFF_RANK[d.difficulty]??1) <= t);
@@ -433,7 +437,14 @@ function plannedMinutesFor(drillId){ if(!state.planCache) return null; const it=
 async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=todayStr(); const idx=state.completions.findIndex(c=>c.date===t&&c.drillId===drillId);
   const wasComplete = idx>=0;
   if(idx>=0){ state.completions.splice(idx,1); }
-  else { const mins = (loggedMinutes!=null?loggedMinutes:plannedMinutesFor(drillId)); state.completions.push({date:t, drillId, minutes:mins, seconds:loggedSeconds!=null?loggedSeconds:(loggedMinutes!=null?loggedMinutes*60:null), logged: loggedMinutes!=null}); }
+  else {
+    const mins = (loggedMinutes!=null?loggedMinutes:null);
+    // If the session timer is running, note how long this drill took (time since the last check-off) — shown, but NOT added to logged time.
+    let tookSeconds = null;
+    const st = state.profile && state.profile.sessionTimer;
+    if(loggedMinutes==null && st){ const nowSecs = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed; tookSeconds = Math.max(0, nowSecs - (st.lastMark||0)); st.lastMark = nowSecs; await persistProfile(); }
+    state.completions.push({date:t, drillId, minutes:mins, seconds:loggedSeconds!=null?loggedSeconds:(loggedMinutes!=null?loggedMinutes*60:null), logged: loggedMinutes!=null, tookSeconds});
+  }
   await persistActivity(); render();
   if(!wasComplete && state.planCache && state.planCache.date===t){
     const allDone = state.planCache.items.every(it=>state.completions.some(c=>c.date===t&&c.drillId===it.drillId));
@@ -467,8 +478,8 @@ function stopTimer(silent){ if(timerInterval){ clearInterval(timerInterval); tim
 function fmtTime(s){ const m=Math.floor(s/60), sec=s%60; return m+':'+String(sec).padStart(2,'0'); }
 async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); setToast('Logged '+fmtTime(secs)); closeDrill(); }
 /* session-level timer (whole practice) */
-function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0;
-  state.profile.sessionTimer={start:Date.now()-base*1000, elapsed:base, running:true};
+function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0; const lastMark=(prev&&prev.lastMark!=null)?prev.lastMark:0;
+  state.profile.sessionTimer={start:Date.now()-base*1000, elapsed:base, running:true, lastMark};
   sessionInterval=setInterval(()=>{ const st=state.profile.sessionTimer; if(st&&st.running){ st.elapsed=Math.floor((Date.now()-st.start)/1000); const el=document.getElementById('session_timer'); if(el) el.textContent=fmtTime(st.elapsed); } },1000); render(); }
 function pauseSessionTimer(){ const st=state.profile.sessionTimer; if(st){ st.elapsed=Math.floor((Date.now()-st.start)/1000); st.running=false; } if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;} render(); }
 async function logSessionTimer(){ const st=state.profile.sessionTimer; if(!st) return; const secs=st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed; const mins=Math.max(1,Math.round(secs/60));
@@ -529,12 +540,9 @@ async function regenerateToday(){
 async function regenTodayWithMinutes(){ state.planCache = computePlan(todayStr(), state.todayMinutes, state.planCache?state.planCache.salt:''); await sSet('plan-cache', state.planCache); render(); }
 async function setDifficultyPref(pref){
   if(!state.profile || state.profile.difficultyPref===pref) return;
-  state.profile.difficultyPref = pref;
+  state.profile.difficultyPref = pref;   // same drills — only the target shifts
   await persistProfile();
-  state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), seenIdsForToday());
-  markPlanSeen(state.planCache);
-  await sSet('plan-cache', state.planCache);
-  setToast(pref==='harder'?'Drills bumped up a level':pref==='easier'?'Drills eased off a level':'Back to your target level'); render();
+  setToast(pref==='harder'?'Targets pushed harder':pref==='easier'?'Targets eased off':'Back to normal targets'); render();
 }
 function adjustMinutes(delta){ state.todayMinutes = Math.max(15,(state.todayMinutes||state.profile.sessionLength)+delta); regenTodayWithMinutes(); }
 function setCustomMinutes(){ const v=parseInt(document.getElementById('custom_min').value); if(v>0){ state.todayMinutes=v; regenTodayWithMinutes(); } }
@@ -865,14 +873,16 @@ function renderToday(){
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
       <span class="muted" style="font-size:12px">Difficulty:</span>
       <button class="diffbtn ${dpref==='easier'?'active':''}" onclick="setDifficultyPref('easier')">Easier</button>
-      <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Target</button>
+      <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Normal</button>
       <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Harder</button>
     </div>
     <p class="muted" style="margin-bottom:10px"><button class="linkbtn" onclick="switchView('buildplan')">Build your own plan instead →</button></p>`;
 
   const cards = plan.items.map(item=>{
     const d = allDrills().find(x=>x.id===item.drillId) || {name:'Drill unavailable',description:'',setup:'',repsOrTime:'',success:'',difficulty:''};
-    const done = state.completions.some(c=>c.date===todayStr()&&c.drillId===item.drillId);
+    const comp = state.completions.find(c=>c.date===todayStr()&&c.drillId===item.drillId);
+    const done = !!comp;
+    const took = comp && comp.tookSeconds!=null ? comp.tookSeconds : null;
     const isFocus = item.area===state.ranking[0] && !item.fixed;
     const added = String(item.key).startsWith('added_');
     return `<div class="card ${isFocus?'focus':''}">
@@ -884,7 +894,8 @@ function renderToday(){
       <div onclick="openDrill('${item.drillId}','today')" style="cursor:pointer">
         <strong>${escapeHtml(d.name)}</strong>
         <p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p>
-        <p class="reps">🎯 ${escapeHtml(d.repsOrTime)}</p>
+        <p class="reps">🎯 ${escapeHtml(d.repsOrTime)}</p>${targetTweak()}
+        ${took!=null?`<p class="muted" style="font-size:11.5px;margin-top:3px">⏱ Took ${fmtTime(took)} <span style="opacity:.7">(not added to your time)</span></p>`:''}
       </div>
       <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>${added?`<button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removePlanItem('${item.key}')">Remove</button>`:''}</div>
     </div>`;
@@ -992,7 +1003,7 @@ function renderDrillDetail(){
   ${inPlan ? `<button class="btn secondary" onclick="setToast('Already in today\\'s plan')">✓ In Today's Plan</button>` : `<button class="btn" onclick="addDrillToToday('${d.id}')">Use / Add to Today</button>`}
   <div class="card" style="margin-top:14px">
     <p>${escapeHtml(d.description)}</p>
-    <p class="reps" style="font-size:13px">🎯 ${escapeHtml(d.repsOrTime)} · ${d.difficulty}</p>
+    <p class="reps" style="font-size:13px">🎯 ${escapeHtml(d.repsOrTime)} · ${d.difficulty}</p>${targetTweak()}
     <p style="font-size:13.5px"><strong>Setup:</strong> ${escapeHtml(d.setup)}</p>
     <p style="font-size:13.5px"><strong>Success:</strong> ${escapeHtml(d.success)}</p>
   </div>
@@ -1050,7 +1061,7 @@ function renderPracticeTime(){
   const rows = dates.map(date=>{
     const entries = byDate[date].map(({c,i})=>{
       let label = c.sessionLog?'Full session (timer)': c.isGame?(c.gameName||'Game')+' (game)' : (allDrills().find(x=>x.id===c.drillId)?.name || c.drillId);
-      const dur = c.seconds!=null ? fmtTime(c.seconds) : (c.minutes||0)+'m';
+      const dur = c.seconds!=null ? fmtTime(c.seconds) : (c.minutes!=null ? c.minutes+'m' : (c.tookSeconds!=null ? 'took '+fmtTime(c.tookSeconds) : 'done'));
       return `<div class="rowline" style="padding:6px 0;border-top:1px solid var(--line)">
         <span style="font-size:13px">${escapeHtml(label)} <span class="muted">— ${dur}</span></span>
         <div style="display:flex;gap:6px"><button class="linkbtn" style="font-size:12px" onclick="editCompletionTime(${i})">Edit</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeCompletionEntry(${i})">✕</button></div>
@@ -1109,7 +1120,7 @@ function buildExportText(){
       if(c.sessionLog) label='Full session (timer)';
       else if(c.isGame) label=(c.gameName||'Game')+' (game)';
       else label=d?d.name+' ('+areaLabel(d.area)+')':c.drillId;
-      rows.push(`   • ${label} — ${mins} min${c.logged?' (timed)':''}`); });
+      rows.push(`   • ${label} — ${c.minutes!=null?c.minutes+' min'+(c.logged?' (timed)':''):(c.tookSeconds!=null?'took '+fmtTime(c.tookSeconds):'done')}`); });
     lines.push(`${date} — ${dayTotal} min`); lines.push(...rows);
   });
   if(!state.completions.length) lines.push('(nothing logged yet)');
