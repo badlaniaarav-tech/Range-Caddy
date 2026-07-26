@@ -137,7 +137,7 @@ const DRILLS = [
 {id:'c3',area:'chipping',name:'Trajectory Control',description:'Prove you can flight it three ways to the same hole.',setup:'One target hole.',repsOrTime:'5 low, 5 medium, 5 high shots',success:'All three trajectories finish inside a consistent radius',difficulty:'Intermediate'},
 {id:'c4',area:'chipping',name:'One-Club Challenge',description:'Build shot-making touch with a single wedge.',setup:'One wedge, three different targets.',repsOrTime:'Low, medium and high shot to each target',success:'Land all three trajectories on each target',difficulty:'Advanced'},
 {id:'c5',area:'chipping',name:'Par 18',description:'Turn chipping into a scored 9-hole round.',setup:'Pick 9 different chip shots, each a par 2.',repsOrTime:'9 chips, 2 putts max per hole',success:'Beat your own par (18)',difficulty:'Intermediate'},
-{id:'c6',area:'chipping',name:'Must Makes',performance:true,description:'A volume chipping test — make a few out of many under fatigue.',setup:'Pick a hole about 20 ft in front of you; grab 20 balls.',repsOrTime:'20 chips',success:'Make at least 3 of 20 to finish',difficulty:'Intermediate'},
+{id:'c6',area:'chipping',name:'Must Makes',performance:true,description:'A volume chipping test — make a few out of many under fatigue.',setup:'Pick a hole about 20 ft in front of you; grab 20 balls.',repsOrTime:'20 chips',success:'Make at least 3 of 20 to finish',difficulty:'Advanced'},
 {id:'c7',area:'chipping',name:'Low, Mid, High Up & Down',performance:true,description:'Prove you can flight it three ways and get up and down from each.',setup:'Pin about 30 ft / 10 yds away.',repsOrTime:'One low, one mid, one high chip',success:'Get all 3 up and down, in a row',difficulty:'Advanced'},
 {id:'c8',area:'chipping',name:'Chipping Ladder',performance:true,description:'Land the ball in progressively deeper zones and back down without a miss.',setup:'Place a club or alignment stick every 3 ft from 10 ft out to 22 ft.',repsOrTime:'Land a ball in every zone, going up and back down the ladder',success:'Complete the full ladder; any miss restarts you',difficulty:'Advanced'},
 {id:'w1',area:'wedges_pitching',name:'Yardage Ladder',description:'Build feel for controlling distance with one club.',setup:'Pick one wedge and 4-5 increasing yardages (e.g. 80-120 in 10yd steps).',repsOrTime:'1 ball per yardage, in order',success:'Complete the ladder without missing a yardage badly',difficulty:'Intermediate'},
@@ -229,7 +229,7 @@ const PRACTICE_GAMES = [
 {id:'g_bullseye',name:'Bullseye',performance:true,players:'Solo · Range',description:'A points game that rewards dialed-in distance and accuracy.',how:'Pick a target and imagine rings around it (5, 10, 15 ft). Hit 15 balls: 3 points inside the 5 ft ring, 2 inside 10 ft, 1 inside 15 ft. Aim for a total and beat it.'}
 ];
 const ALL_GAMES = GAMES.concat(PRACTICE_GAMES);
-function findGame(id){ return ALL_GAMES.find(g=>g.id===id); }
+function findGame(id){ return allGames().find(g=>g.id===id); }
 
 /* ---------- storage helpers ----------
    window.storage is a bridge some hosts provide; when it's missing (plain
@@ -334,7 +334,11 @@ function captureProfileFields(){
 }
 let timerInterval=null, sessionInterval=null;
 
-function communityDrills(){ return (state.approvedSuggestions||[]).map(s=>({id:'sug_'+s.id, area:s.area, name:s.name, description:s.description||'', setup:'Community drill — suggested by '+(s.author||'a golfer')+'.', repsOrTime:'As needed', success:'Give it a go and track how you do.', difficulty:'Intermediate', community:true})); }
+/* A suggestion is one of three kinds — normal drill, performance drill, or game.
+   Once approved it's shown with that kind's own badge (not a generic "Community" tag). */
+function communityDrills(){ return (state.approvedSuggestions||[]).filter(s=>s.kind!=='game').map(s=>({id:'sug_'+s.id, area:s.area, name:s.name, description:s.description||'', setup:'Suggested by '+(s.author||'a golfer')+'.', repsOrTime:'As needed', success:'Give it a go and track how you do.', difficulty:'Intermediate', performance: s.kind==='performance'})); }
+function communityGames(){ return (state.approvedSuggestions||[]).filter(s=>s.kind==='game').map(s=>({id:'sug_'+s.id, name:s.name, players:'Solo · Community', description:s.description||'', how:'Suggested by '+(s.author||'a golfer')+'.', performance:true})); }
+function allGames(){ return ALL_GAMES.concat(communityGames()); }
 function allDrills(){ const sw=(state.swingWork||[]).map(s=>({id:'sw_'+s.id, area:s.area, name:s.name, description:s.description||'Personal swing work', setup:'Your own notes — from My Swing Work.', repsOrTime:'As needed', success:'Your own goal for this rep.', difficulty:'Personal', swingWork:true}));
   return DRILLS.concat(state.customDrills).concat(communityDrills()).concat(sw); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -378,7 +382,9 @@ function mulberry32(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; l
 function selectTodayGames(favorites, rand){
   const pickPool = (pool)=>{ const fav=pool.filter(g=>favorites.includes(g.id)).map(g=>g.id); const rest=pool.filter(g=>!favorites.includes(g.id)).map(g=>g.id).sort(()=>rand()-0.5); return [...fav, ...rest]; };
   const courseGame = pickPool(GAMES)[0];
-  const perfGames = pickPool(ALL_GAMES.filter(g=>g.performance && g.id!==courseGame)).slice(0,2);
+  // Only 1 on-course game total — pull the other 2 from range/practice performance games only,
+  // since several on-course games (like 3-Ball Scramble) are also tagged performance.
+  const perfGames = pickPool(PRACTICE_GAMES.filter(g=>g.performance)).slice(0,2);
   return [...perfGames, courseGame].filter(Boolean);   // on-course game shown last
 }
 function computePlan(dateStr, minutes, salt, excludeIds){
@@ -401,10 +407,9 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     if(excludeIds && excludeIds.length){ const fresh=pool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) pool=fresh; }
     const favs = pool.filter(d=>favorites.includes(d.id));
     const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
-    // Minimum drill counts: putting always gets at least 3, every other area at least 2 —
-    // including the golfer's most-needed (top-ranked) area — never fewer, whatever the time budget.
-    const minForArea = areaId==='putting' ? 3 : 2;
-    let numDrills = Math.max(minForArea, m>=20?2:1);
+    // Drill counts: bunker, mid irons and long irons are fixed at exactly 1 drill (one fewer
+    // than everything else); every other area gets exactly 2, regardless of the time budget.
+    let numDrills = (areaId==='bunker' || areaId==='mid_irons' || areaId==='long_irons') ? 1 : 2;
     numDrills = Math.min(numDrills, pool.length);
     const chosen = [...favs, ...rest].slice(0,numDrills);
     if(areaId==='putting' && areaId===order[0]) items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:10,fixed:true});
@@ -512,11 +517,31 @@ async function finishGameTimed(){ const secs=state.timer?state.timer.elapsed:0; 
 /* add drills to today's plan */
 function toggleAddDrill(){ state.addDrillOpen=!state.addDrillOpen; render(); }
 function setAddDrillArea(v){ state.addDrillArea=v; render(); }
-async function addDrillToPlan(drillId){ ensureTodayPlan(); const d=allDrills().find(x=>x.id===drillId); if(!d) return;
-  if(state.planCache.items.some(i=>i.drillId===drillId)){ setToast('Already in plan'); return; }
-  state.planCache.items.push({key:'added_'+drillId+'_'+Date.now(), area:d.area, drillId, minutes:10, fixed:false});
-  await sSet('plan-cache', state.planCache); setToast('Added'); render();
+async function addDrillExtra(d){
+  state.planCache.items.push({key:'added_'+d.id+'_'+Date.now(), area:d.area, drillId:d.id, minutes:10, fixed:false});
+  await sSet('plan-cache', state.planCache); setToast('Added as an extra drill'); render();
 }
+/* When you add a drill that shares an area with one already in today's plan,
+   ask whether to swap it in for an existing drill or just add it on top. */
+async function requestAddDrill(drillId){
+  ensureTodayPlan();
+  const d = allDrills().find(x=>x.id===drillId); if(!d) return;
+  if(state.planCache.items.some(i=>i.drillId===drillId)){ setToast('Already in plan'); return; }
+  const sameArea = state.planCache.items.filter(i=>i.area===d.area && !i.fixed);
+  if(!sameArea.length){ await addDrillExtra(d); return; }
+  const names = sameArea.map((i,idx)=>{ const dd=allDrills().find(x=>x.id===i.drillId); return (idx+1)+'. '+(dd?dd.name:i.drillId); }).join('\n');
+  const choice = prompt(`Add "${d.name}" to today?\n\nType the number of the ${areaLabel(d.area)} drill it should REPLACE:\n${names}\n\nOr leave this blank and press OK to add it as an extra drill instead.`, '');
+  if(choice===null) return; // cancelled
+  const num = parseInt(choice, 10);
+  if(!isNaN(num) && num>=1 && num<=sameArea.length){
+    const target = sameArea[num-1];
+    state.planCache.items = state.planCache.items.map(i=> i.key===target.key ? {key:'added_'+d.id+'_'+Date.now(), area:d.area, drillId:d.id, minutes:i.minutes, fixed:false} : i);
+    await sSet('plan-cache', state.planCache); setToast('Replaced'); render();
+  } else {
+    await addDrillExtra(d);
+  }
+}
+async function addDrillToPlan(drillId){ await requestAddDrill(drillId); }
 async function removePlanItem(key){ if(!state.planCache) return; state.planCache.items=state.planCache.items.filter(i=>i.key!==key); await sSet('plan-cache', state.planCache); render(); }
 function toggleAddGame(){ state.addGameOpen=!state.addGameOpen; render(); }
 async function toggleFavorite(drillId){ const idx=state.favorites.indexOf(drillId); if(idx>=0) state.favorites.splice(idx,1); else state.favorites.push(drillId); await persistActivity(); render(); }
@@ -667,10 +692,11 @@ async function loadPendingSuggestions(){
 }
 async function submitSuggestion(){
   if(!cloudReady || !currentUser){ setToast('Please sign in first'); return; }
+  const kind=document.getElementById('sug_kind').value;
   const area=document.getElementById('sug_area').value, name=(document.getElementById('sug_name').value||'').trim(), description=(document.getElementById('sug_desc').value||'').trim();
-  if(!name||!description){ setToast('Add a drill name and description'); return; }
+  if(!name||!description){ setToast('Add a name and description'); return; }
   try{
-    await fbDb.collection('suggestions').add({ area, name, description, author:(state.profile&&state.profile.displayName)||'A golfer', authorEmail:currentUser.email||'', uid:currentUser.uid, status:'pending', ts:Date.now() });
+    await fbDb.collection('suggestions').add({ kind, area:(kind==='game'?null:area), name, description, author:(state.profile&&state.profile.displayName)||'A golfer', authorEmail:currentUser.email||'', uid:currentUser.uid, status:'pending', ts:Date.now() });
     setToast('Thanks — sent for review!');
     document.getElementById('sug_name').value=''; document.getElementById('sug_desc').value='';
   }catch(e){ console.error('submit failed', e); setToast('Could not submit, try again'); }
@@ -687,11 +713,7 @@ async function rejectSuggestion(id){
 }
 async function copyExportLog(){ const t=document.getElementById('export_text'); t.select(); try{ await navigator.clipboard.writeText(t.value); setToast('Copied!'); }catch(e){ setToast('Select the text and copy manually'); } }
 
-async function addDrillToToday(drillId){ ensureTodayPlan(); const d=allDrills().find(x=>x.id===drillId); if(!d) return;
-  if(state.planCache.items.some(i=>i.drillId===drillId)){ setToast('Already in today\'s plan'); return; }
-  state.planCache.items.push({key:'added_'+drillId, area:d.area, drillId, minutes:plannedMinutesFor(drillId)||10, fixed:false});
-  await sSet('plan-cache', state.planCache); setToast('Added to today'); render();
-}
+async function addDrillToToday(drillId){ await requestAddDrill(drillId); }
 function switchView(v){
   state.view=v;
   if(v==='today') ensureTodayPlan();
@@ -949,7 +971,7 @@ function renderToday(){
       <div onclick="openDrill('${item.drillId}','today')" style="cursor:pointer"><strong>${escapeHtml(d.name)}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p></div>
       <button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>
     </div>`; }).join('');
-  const gamePool = ALL_GAMES.filter(g=>!(plan.games||[]).includes(g.id));
+  const gamePool = allGames().filter(g=>!(plan.games||[]).includes(g.id));
   const addGamePanel = state.addGameOpen ? `
     <div class="card">
       <div class="rowline"><strong>Add a game to today</strong><button class="linkbtn" onclick="toggleAddGame()">Close</button></div>
@@ -989,7 +1011,7 @@ function renderLibrary(){
   const options = `<option value="all">All areas</option><option value="fav" ${f==='fav'?'selected':''}>★ Favorites</option>` + AREAS.map(a=>`<option value="${a.id}" ${f===a.id?'selected':''}>${a.label}</option>`).join('');
   const list = drills.map(d=>{ const fav=state.favorites.includes(d.id);
     return `<div class="card">
-      <div class="rowline"><strong onclick="openDrill('${d.id}','library')" style="cursor:pointer;flex:1">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.community?' <span class=\"perfbadge\" style=\"background:var(--fairway);color:var(--chalk)\">👥 Community</span>':''}${d.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
+      <div class="rowline"><strong onclick="openDrill('${d.id}','library')" style="cursor:pointer;flex:1">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</strong><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
       <div onclick="openDrill('${d.id}','library')" style="cursor:pointer">
         <span class="pill" style="margin:6px 0;display:inline-block">${areaLabel(d.area)}</span>
         <p class="muted">${escapeHtml(d.description)}</p>
@@ -999,6 +1021,13 @@ function renderLibrary(){
   return `<h1>Drill Library</h1><select onchange="setLibFilter(this.value)" style="margin-bottom:12px">${options}</select>${list}`;
 }
 
+function explainDrill(d){
+  return `This is a ${areaLabel(d.area).toLowerCase()} drill${d.difficulty?' rated '+d.difficulty.toLowerCase():''}. `
+    + `The idea: ${d.description} `
+    + `To set it up — ${d.setup} `
+    + `Work through it for ${d.repsOrTime}. `
+    + `You'll know it's working when: ${d.success}`;
+}
 function renderDrillDetail(){
   const d = allDrills().find(x=>x.id===state.detailDrillId);
   if(!d) return `<button class="linkback" onclick="closeDrill()">‹ Back</button><div class="empty">Drill not found.</div>`;
@@ -1006,6 +1035,8 @@ function renderDrillDetail(){
   const inPlan = state.planCache && state.planCache.items.some(i=>i.drillId===d.id);
   const done = state.completions.some(c=>c.date===todayStr()&&c.drillId===d.id);
   const timing = state.timer;
+  const explainKey = 'explain_'+d.id;
+  const explainOpen = state.expanded.has(explainKey);
   return `<button class="linkback" onclick="closeDrill()">‹ Back</button>
   <div class="rowline"><span class="pill">${areaLabel(d.area)}</span><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
   <h1 style="margin-top:8px">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
@@ -1015,6 +1046,8 @@ function renderDrillDetail(){
     <p class="reps" style="font-size:13px">🎯 ${escapeHtml(d.repsOrTime)} · ${d.difficulty}</p>${targetTweak()}
     <p style="font-size:13.5px"><strong>Setup:</strong> ${escapeHtml(d.setup)}</p>
     <p style="font-size:13.5px"><strong>Success:</strong> ${escapeHtml(d.success)}</p>
+    <button class="linkbtn" style="font-size:12px;margin-top:6px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'▸'} ❓ Don't understand this drill? Explain it</button>
+    ${explainOpen?`<p class="muted" style="font-size:13px;margin-top:6px">${escapeHtml(explainDrill(d))}</p>`:''}
   </div>
   <div class="card">
     <strong>Practice this drill</strong>
@@ -1035,14 +1068,16 @@ function renderGames(){
       <div onclick="openGame('${g.id}','games')" style="cursor:pointer"><span class="pill" style="margin:6px 0;display:inline-block">${g.players}</span><p class="muted">${escapeHtml(g.description)}</p></div>
       <button class="linkbtn" style="font-size:12px" onclick="openGame('${g.id}','games')">Open game ›</button></div>`; };
   if(f==='fav'){
-    const favG = ALL_GAMES.filter(g=>state.favorites.includes(g.id));
+    const favG = allGames().filter(g=>state.favorites.includes(g.id));
     const list = favG.map(gameCard).join('') || '<div class="empty">No favorite games yet — tap ☆ on any game.</div>';
     return `<h1>Games</h1><select onchange="setGameFilter(this.value)" style="margin-bottom:12px"><option value="all">All games</option><option value="fav" selected>★ Favorites</option></select>${list}`;
   }
+  const cGames = communityGames();
   return `<h1>Games</h1><p class="muted">Formats to test what you've built against real pressure. Tap a game to open it, add it to today, and time your round.</p>
   <select onchange="setGameFilter(this.value)" style="margin:12px 0"><option value="all" selected>All games</option><option value="fav">★ Favorites</option></select>
   <h2 style="margin-top:8px">On-Course Games</h2>${GAMES.map(gameCard).join('')}
-  <h2 style="margin-top:16px">Practice Games</h2>${PRACTICE_GAMES.map(gameCard).join('')}`;
+  <h2 style="margin-top:16px">Practice Games</h2>${PRACTICE_GAMES.map(gameCard).join('')}
+  ${cGames.length?`<h2 style="margin-top:16px">Suggested by Golfers</h2>${cGames.map(gameCard).join('')}`:''}`;
 }
 
 function renderGameDetail(){
@@ -1097,20 +1132,25 @@ function renderSwingWork(){
 
 function renderSuggest(){
   const approved = state.approvedSuggestions||[];
-  const rows = approved.map(s=>`<div class="card"><span class="pill">${areaLabel(s.area)}</span><h2 style="margin-top:8px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">suggested by ${escapeHtml(s.author||'a golfer')}</p></div>`).join('') || '<div class="empty">No community drills yet — suggest the first!</div>';
-  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Suggest a Drill</h1><p class="muted">Share a drill idea. It's sent for review, and once approved it shows up in everyone's Library.</p>
-  <label>Area</label><select id="sug_area">${AREAS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
-  <label>Drill name</label><input type="text" id="sug_name" placeholder="e.g. Clock Face Putting">
+  const rows = approved.map(s=>{
+    const badge = s.kind==='game' ? '<span class="pill">Game</span>' : s.kind==='performance' ? '<span class="perfbadge">🏆 Performance</span>' : '<span class="pill">Drill</span>';
+    return `<div class="card">${s.kind!=='game'?`<span class="pill">${areaLabel(s.area)}</span> `:''}${badge}<h2 style="margin-top:8px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">suggested by ${escapeHtml(s.author||'a golfer')}</p></div>`;
+  }).join('') || '<div class="empty">Nothing suggested yet — be the first!</div>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Suggest a Drill or Game</h1><p class="muted">Share an idea. It's sent for review, and once approved it shows up for everyone as a normal drill, a performance drill, or a game.</p>
+  <label>Type</label><select id="sug_kind"><option value="drill">Practice drill</option><option value="performance">Performance drill</option><option value="game">Game</option></select>
+  <label>Area (ignored for games)</label><select id="sug_area">${AREAS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+  <label>Name</label><input type="text" id="sug_name" placeholder="e.g. Clock Face Putting">
   <label>Description</label><textarea id="sug_desc" placeholder="How it works and what to aim for"></textarea>
   <button class="btn" style="margin-top:12px" onclick="submitSuggestion()">Submit for Review</button>
-  <div class="divider"></div><h2>Community Drills</h2><p class="muted" style="margin-bottom:10px">Approved drills from other golfers — these are also in your Library.</p>${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
+  <div class="divider"></div><h2>Approved Suggestions</h2><p class="muted" style="margin-bottom:10px">From other golfers — these are also in your Library or Games tab.</p>${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
 }
 function renderReview(){
   if(!isAdmin()) return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><div class="empty">This area is for the admin only.</div>`;
   const pending = state.pendingSuggestions||[];
-  const rows = pending.map(s=>`<div class="card"><span class="pill">${areaLabel(s.area)}</span><h2 style="margin-top:8px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">from ${escapeHtml(s.author||'a golfer')}${s.authorEmail?' · '+escapeHtml(s.authorEmail):''}</p>
+  const kindLabel = k => k==='game' ? '🎮 Game' : k==='performance' ? '🏆 Performance drill' : '📋 Practice drill';
+  const rows = pending.map(s=>`<div class="card"><span class="pill">${s.kind==='game'?'Game':areaLabel(s.area)}</span> <span class="muted" style="font-size:11.5px">${kindLabel(s.kind)}</span><h2 style="margin-top:8px">${escapeHtml(s.name)}</h2><p class="muted">${escapeHtml(s.description)}</p><p style="font-size:11px" class="muted">from ${escapeHtml(s.author||'a golfer')}${s.authorEmail?' · '+escapeHtml(s.authorEmail):''}</p>
     <div class="rowline" style="margin-top:10px;gap:8px"><button class="btn small" style="flex:1" onclick="approveSuggestion('${s.id}')">✓ Approve</button><button class="btn small danger" style="flex:1;width:auto" onclick="rejectSuggestion('${s.id}')">✕ Reject</button></div></div>`).join('') || '<div class="empty">No suggestions waiting for review. 🎉</div>';
-  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Review Suggestions</h1><p class="muted">Approve to publish a drill to everyone's Community Drills, or reject to delete it.</p>
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Review Suggestions</h1><p class="muted">Approve to publish it for everyone as its own type — drill, performance drill, or game — or reject to delete it.</p>
   ${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
 }
 
