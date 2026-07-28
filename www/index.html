@@ -910,7 +910,7 @@ function renderToday(){
     <div class="rowline"><h2>Your Session</h2>
       <div style="display:flex;gap:12px">
         ${state.swapMode ? `<button class="linkbtn" onclick="swapSelected()">Swap (${state.swapSelection.size})</button><button class="linkbtn" onclick="toggleSwapMode()">Cancel</button>`
-          : `<button class="linkbtn" onclick="toggleSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateToday()">Regenerate all</button><button class="linkbtn" onclick="toggleReducedMode()">${state.reducedMode?'Full plan':'Fewer drills'}</button>`}
+          : `<button class="linkbtn" onclick="toggleSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateToday()">Regenerate all</button>`}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
@@ -919,7 +919,10 @@ function renderToday(){
       <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Normal</button>
       <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Harder</button>
     </div>
-    <p class="muted" style="margin-bottom:10px"><button class="linkbtn" onclick="switchView('buildplan')">Build your own plan instead →</button></p>`;
+    <div class="rowline" style="margin-bottom:10px">
+      <button class="linkbtn" onclick="switchView('buildplan')">Build your own plan instead →</button>
+      <button class="linkbtn" onclick="toggleReducedMode()">${state.reducedMode?'Full plan':'Fewer drills'}</button>
+    </div>`;
 
   const cards = plan.items.map(item=>{
     const d = allDrills().find(x=>x.id===item.drillId) || {name:'Drill unavailable',description:'',setup:'',repsOrTime:'',success:'',difficulty:''};
