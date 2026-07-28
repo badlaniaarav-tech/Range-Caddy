@@ -402,6 +402,14 @@ function computePlan(dateStr, minutes, salt, excludeIds){
   // Bunker can drop out entirely only if it's last in the golfer's practice order.
   const reduced = !!state.reducedMode || total<=45;
   const bunkerLast = order.length && order[order.length-1]==='bunker';
+  // As "Today I have" drops in 15-min steps, trim the 2nd drill from areas one at a time —
+  // starting with whatever the golfer needs LEAST (bottom of their ranking) and working up
+  // toward what they need most, so the most-needed areas keep their extra drill the longest.
+  const extrasAreas = ranking.filter(a=> a!=='bunker' && a!=='mid_irons' && a!=='long_irons');
+  const dropOrder = [...extrasAreas].reverse();
+  const fullRef = profile.sessionLength || 90;
+  const stepsBelow = reduced ? dropOrder.length : Math.max(0, Math.floor((fullRef - total)/15));
+  const droppedExtra = new Set(dropOrder.slice(0, Math.min(dropOrder.length, stepsBelow)));
   const items = [];
   order.forEach(areaId=>{
     if(reduced && areaId==='bunker' && bunkerLast) return;
@@ -413,8 +421,8 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     const favs = pool.filter(d=>favorites.includes(d.id));
     const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
     // Drill counts: bunker, mid irons and long irons are fixed at exactly 1 drill (one fewer
-    // than everything else); every other area gets exactly 2 — unless reduced, then everyone gets 1.
-    let numDrills = reduced ? 1 : (areaId==='bunker' || areaId==='mid_irons' || areaId==='long_irons') ? 1 : 2;
+    // than everything else); every other area gets exactly 2 — unless reduced/dropped, then 1.
+    let numDrills = (areaId==='bunker' || areaId==='mid_irons' || areaId==='long_irons' || droppedExtra.has(areaId)) ? 1 : 2;
     numDrills = Math.min(numDrills, pool.length);
     const chosen = [...favs, ...rest].slice(0,numDrills);
     if(areaId==='putting') items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:10,fixed:true});
@@ -660,7 +668,7 @@ async function saveProfileForm(){
   const goal = document.getElementById('f_goal').value.trim();
   const skillLevel = document.getElementById('f_level').value;
   const sessionMode = draftMode || 'timed';
-  const sessionLength = sessionMode==='untimed' ? (state.profile?state.profile.sessionLength:90) : (parseInt(document.getElementById('f_session').value)||60);
+  const sessionLength = sessionMode==='untimed' ? (state.profile?state.profile.sessionLength:105) : (parseInt(document.getElementById('f_session').value)||60);
   const startOrder = (draftStartOrder||AREAS.map(a=>a.id)).slice();
   const startArea = startOrder[0];
   const photo = draftPhoto || '';
@@ -774,7 +782,7 @@ function renderNav(){
 }
 
 function renderProfileForm(isOnboarding){
-  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',sessionLength:90,startArea:'putting',sessionMode:'timed'};
+  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',sessionLength:105,startArea:'putting',sessionMode:'timed'};
   draftRanking = draftRanking || (state.ranking?state.ranking.slice():AREAS.map(a=>a.id));
   if(draftStartOrder===null) draftStartOrder = (p.startOrder && p.startOrder.length) ? p.startOrder.slice() : [p.startArea, ...AREAS.map(a=>a.id).filter(x=>x!==p.startArea)];
   if(draftMode===null) draftMode = p.sessionMode;
