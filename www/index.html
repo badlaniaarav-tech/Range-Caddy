@@ -105,6 +105,12 @@ p{margin:0 0 8px;line-height:1.45;}
 .adjustlbl:first-child{margin-top:0;}
 .adjustrow{display:flex;gap:8px;flex-wrap:wrap;}
 .adjustrow .btn{width:auto;flex:1;min-width:120px;padding:11px 12px;font-size:13.5px;border-radius:12px;}
+.ctrlcard{background:var(--paper);border-radius:16px;padding:14px 16px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.ctrllbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.6;margin-bottom:8px;}
+.ctrlcard .ctrllbl + .adjustrow, .ctrlcard .diffrow + .ctrllbl{margin-top:0;}
+.ctrlcard .ctrllbl:not(:first-child){margin-top:14px;}
+.diffrow{display:flex;gap:8px;}
+.diffrow .diffbtn{flex:1;font-size:14px;padding:11px 8px;border-radius:12px;border-width:2px;}
 .stepcard{background:var(--paper);border-radius:16px;border-left:5px solid var(--fairway);padding:14px 16px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .stepcardlbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--fairway);margin-bottom:6px;}
 .stepcardtxt{font-size:14.5px;line-height:1.5;}
@@ -452,7 +458,7 @@ function captureProfileFields(){
   if(!document.getElementById('f_name')) return;
   draftFields = draftFields || {};
   const g=id=>{ const el=document.getElementById(id); return el?el.value:undefined; };
-  [['f_name','displayName'],['f_handicap','handicap'],['f_level','skillLevel'],['f_commit','commitment'],['f_hand','hand'],['f_goal','goal'],['f_session','sessionLength']].forEach(([id,key])=>{ const v=g(id); if(v!==undefined) draftFields[key]=v; });
+  [['f_name','displayName'],['f_handicap','handicap'],['f_commit','commitment'],['f_hand','hand'],['f_goal','goal'],['f_session','sessionLength']].forEach(([id,key])=>{ const v=g(id); if(v!==undefined) draftFields[key]=v; });
 }
 let timerInterval=null, sessionInterval=null;
 
@@ -482,13 +488,11 @@ function handicapTierF(hcp){
 // How much harder work someone's commitment to the game lets them take on.
 const COMMIT_TIER = {casual:-0.35, regular:0, serious:0.2, competitive:0.4};
 const COMMIT_LABEL = {casual:'Casual', regular:'Regular', serious:'Serious', competitive:'Competitive'};
-// Blend handicap, self-reported level and commitment into a target difficulty (0-2).
-// Handicap carries the most weight — it's the only measured number of the three.
+// Work out the target difficulty (0-2) from handicap and commitment. The golfer is never asked
+// or shown a "level" — it's inferred here and only ever surfaces as which drills they're given.
 function targetTierF(profile){
   if(!profile) return 1;
-  const hT = handicapTierF(profile.handicap);
-  const lvl = {beginner:0, intermediate:1, advanced:2}[profile.skillLevel];
-  let t = (lvl===undefined) ? hT : (hT*0.6 + lvl*0.4);
+  let t = handicapTierF(profile.handicap);
   t += COMMIT_TIER[profile.commitment||'regular'] || 0;
   return Math.max(0, Math.min(2, t));
 }
@@ -882,14 +886,13 @@ async function saveProfileForm(){
   if(handicap===''){ setToast('Please enter your handicap'); const el=document.getElementById('f_handicap'); if(el) el.style.borderColor='var(--danger)'; return; }
   const hand = document.getElementById('f_hand').value;
   const goal = document.getElementById('f_goal').value.trim();
-  const skillLevel = document.getElementById('f_level').value;
   const commitment = document.getElementById('f_commit') ? document.getElementById('f_commit').value : (state.profile&&state.profile.commitment) || 'regular';
   const sessionMode = draftMode || 'timed';
   const sessionLength = sessionMode==='untimed' ? (state.profile?state.profile.sessionLength:105) : (parseInt(document.getElementById('f_session').value)||60);
   const startOrder = (draftStartOrder||AREAS.map(a=>a.id)).slice();
   const startArea = startOrder[0];
   const photo = draftPhoto || '';
-  state.profile = {displayName:name, handicap, hand, goal, skillLevel, commitment, sessionLength, startArea, startOrder, sessionMode, photo};
+  state.profile = {displayName:name, handicap, hand, goal, commitment, sessionLength, startArea, startOrder, sessionMode, photo};
   state.ranking = draftRanking.slice();
   await persistProfile();
   state.planCache = computePlan(todayStr(), sessionLength, '');
@@ -1026,7 +1029,7 @@ function renderProfileForm(isOnboarding){
   if(draftStartOrder===null) draftStartOrder = (p.startOrder && p.startOrder.length) ? p.startOrder.slice() : [p.startArea, ...AREAS.map(a=>a.id).filter(x=>x!==p.startArea)];
   if(draftMode===null) draftMode = p.sessionMode;
   if(draftPhoto===null) draftPhoto = p.photo || '';
-  if(draftFields===null) draftFields = {displayName:p.displayName||'', handicap:p.handicap||'', skillLevel:p.skillLevel||'beginner', commitment:p.commitment||'regular', hand:p.hand||'R', goal:p.goal||'', sessionLength:p.sessionLength||105};
+  if(draftFields===null) draftFields = {displayName:p.displayName||'', handicap:p.handicap||'', commitment:p.commitment||'regular', hand:p.hand||'R', goal:p.goal||'', sessionLength:p.sessionLength||105};
   const df = draftFields;
   const startRows = draftStartOrder.map((areaId,idx)=>`
     <div class="rankrow2" draggable="true" ondragstart="dragStartOrder(${idx})" ondragover="event.preventDefault()" ondrop="dropStartOrder(${idx})">
@@ -1063,12 +1066,6 @@ function renderProfileForm(isOnboarding){
     <label>Name <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_name" placeholder="Your name" value="${escapeHtml(df.displayName)}">
     <label>Handicap <span style="color:var(--danger)">(required)</span></label><input type="text" id="f_handicap" placeholder="e.g. 14, 0, or Scratch" value="${escapeHtml(df.handicap)}">
     <p class="muted" style="margin-top:-3px;font-size:11.5px">We use this to set how hard your drills start.</p>
-    <label>What's your level?</label>
-    <select id="f_level">
-      <option value="beginner" ${(!df.skillLevel||df.skillLevel==='auto'||df.skillLevel==='beginner')?'selected':''}>Beginner</option>
-      <option value="intermediate" ${df.skillLevel==='intermediate'?'selected':''}>Intermediate</option>
-      <option value="advanced" ${df.skillLevel==='advanced'?'selected':''}>Advanced</option>
-    </select>
     <label>How committed are you to golf?</label>
     <select id="f_commit">
       <option value="casual" ${df.commitment==='casual'?'selected':''}>Casual — I play for fun when I get the chance</option>
@@ -1114,7 +1111,6 @@ function renderProfileSummary(){
   <div class="card">
     <div class="inforow"><span>Handicap</span><span>${p.handicap||'—'}</span></div>
     <div class="inforow"><span>Commitment</span><span>${COMMIT_LABEL[p.commitment||'regular']}</span></div>
-    <div class="inforow"><span>Drill level</span><span>${['Beginner','Intermediate','Advanced'][targetTier(p)]}${p.difficultyPref&&p.difficultyPref!=='normal'?' · '+p.difficultyPref:''}</span></div>
     <div class="inforow"><span>Dominant hand</span><span>${p.hand==='L'?'Left':'Right'}</span></div>
     <div class="inforow"><span>Session mode</span><span>${p.sessionMode==='untimed'?'Untimed':'Timed · '+p.sessionLength+' min'}</span></div>
     <div class="inforow"><span>Starts with</span><span>${areaLabel(p.startArea)}</span></div>
@@ -1160,21 +1156,28 @@ function renderToday(){
     </div>`;
 
   const dpref = state.profile.difficultyPref || 'normal';
+  // Always-visible controls: how hard the targets are, and swapping / regenerating drills.
+  const controlBar = `
+    <div class="ctrlcard">
+      <div class="ctrllbl">Difficulty</div>
+      <div class="diffrow">
+        <button class="diffbtn ${dpref==='easier'?'active':''}" onclick="setDifficultyPref('easier')">Easy</button>
+        <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Normal</button>
+        <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Hard</button>
+      </div>
+      <div class="ctrllbl">Not feeling these drills?</div>
+      <div class="adjustrow">
+        ${state.swapMode
+          ? `<button class="btn" onclick="swapSelected()">↻ Swap ${state.swapSelection.size} selected</button><button class="btn secondary" onclick="toggleSwapMode()">Cancel</button>`
+          : `<button class="btn secondary" onclick="toggleSwapMode()">☑ Select drills to swap</button><button class="btn secondary" onclick="regenerateToday()">↻ Regenerate all</button>`}
+      </div>
+      ${state.swapMode?'<p class="muted" style="font-size:12px;margin:9px 0 0">Tick the drills you want replaced, then hit Swap.</p>':''}
+    </div>`;
+
   const adjustPanel = state.adjustOpen ? `
     <div class="adjustpanel">
-      <div class="rowline"><strong style="font-size:15px">Adjust today's plan</strong><button class="linkbtn" onclick="toggleAdjust()">Done</button></div>
-      <div class="adjustlbl" style="margin-top:12px">How hard should the targets be?</div>
-      <div style="display:flex;gap:6px">
-        <button class="diffbtn ${dpref==='easier'?'active':''}" onclick="setDifficultyPref('easier')">Easier</button>
-        <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Normal</button>
-        <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Harder</button>
-      </div>
-      <div class="adjustlbl">Don't like these drills?</div>
-      <div class="adjustrow">
-        ${state.swapMode ? `<button class="btn" onclick="swapSelected()">Swap ${state.swapSelection.size} selected</button><button class="btn secondary" onclick="toggleSwapMode()">Cancel</button>`
-          : `<button class="btn secondary" onclick="toggleSwapMode()">Swap just some</button><button class="btn secondary" onclick="regenerateToday()">Regenerate all</button>`}
-      </div>
-      <div class="adjustlbl">Session size</div>
+      <div class="rowline"><strong style="font-size:15px">More options</strong><button class="linkbtn" onclick="toggleAdjust()">Done</button></div>
+      <div class="adjustlbl" style="margin-top:12px">Session size</div>
       <div class="adjustrow">
         <button class="btn secondary" onclick="toggleReducedMode()">${state.reducedMode?'Back to full plan':'Give me fewer drills'}</button>
         <button class="btn secondary" onclick="setCustomMinutesPrompt()">Set exact minutes</button>
@@ -1182,12 +1185,12 @@ function renderToday(){
       <div class="adjustlbl">Prefer to choose yourself?</div>
       <div class="adjustrow"><button class="btn secondary" onclick="switchView('buildplan')">Build my own plan →</button>
       ${untimed?'':`<button class="btn secondary" onclick="toggleSessionMode()">Switch to untimed</button>`}</div>
-    </div>` : `<button class="adjustbtn" onclick="toggleAdjust()">⚙ Adjust plan — swap drills, change difficulty</button>`;
+    </div>` : `<button class="adjustbtn" onclick="toggleAdjust()">⚙ More options — session size, build your own</button>`;
 
   const sessionHeader = `
     <h2 class="sectionhead">Your practice plan</h2>
     <p class="sectionsub">Broken into blocks with a time budget for each. Work down in order — tap a drill for setup instructions, then tap the circle to check it off.</p>
-    ${adjustPanel}`;
+    ${controlBar}${adjustPanel}`;
 
   // Group today's drills by area so the session reads as blocks with their own time budget.
   const groups = [];
