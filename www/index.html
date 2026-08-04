@@ -53,6 +53,17 @@ p{margin:0 0 8px;line-height:1.45;}
 .btn.secondary{background:var(--paper);color:var(--fairway);border:1.5px solid var(--fairway);}
 .btn.danger{background:var(--danger);}
 .btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
+.bigbtn{padding:19px 16px;font-size:17px;border-radius:18px;box-shadow:0 5px 16px rgba(47,82,51,.28);}
+.welcomehero{text-align:center;margin-top:22px;}
+.welcomelogo{width:104px;height:104px;margin:0 auto;overflow:hidden;background:var(--paper);box-shadow:0 6px 20px rgba(0,0,0,.18);}
+.welcomelogo img{width:100%;height:100%;object-fit:cover;}
+.welcometitle{margin-top:16px;font-size:34px;line-height:1.1;}
+.welcometag{margin-top:10px;font-size:16px;font-weight:600;line-height:1.45;color:var(--ink);text-shadow:0 0 6px rgba(255,255,255,.85);}
+.welcomesteps{margin:26px 0 24px;display:flex;flex-direction:column;gap:12px;}
+.welcomestep{display:flex;gap:14px;align-items:flex-start;background:var(--paper);border-radius:16px;padding:15px 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.stepnum{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;}
+.steptitle{font-weight:800;font-size:15.5px;margin-bottom:3px;}
+.stepdesc{font-size:13.5px;line-height:1.45;opacity:.78;}
 label{display:block;font-size:11.5px;color:#000;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 5px;font-family:'Barlow Condensed',sans-serif;}
 input[type=text],input[type=number],input[type=email],input[type=password],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 11px;font-family:'Inter';font-size:14px;background:var(--paper);color:var(--ink);}
 textarea{resize:vertical;min-height:50px;}
@@ -205,7 +216,46 @@ const DRILLS = [
 {id:'si8',area:'short_irons',name:'Random Number Ladder',description:'Train on-course adaptability by never hitting the same yardage twice.',setup:'Pick a club and a way to call out random yardages within its range (a partner or an app).',repsOrTime:'10 balls, a new called yardage each time',success:'Land close to each called number with no warm-up rep',difficulty:'Intermediate'},
 {id:'mi10',area:'mid_irons',name:'Alignment Gate',description:'Groove a repeatable start line so every ball begins on your intended path.',setup:'Stand two alignment sticks a few feet ahead of the ball, just wider than the ball, framing your start line.',repsOrTime:'10 balls',success:'Start every ball cleanly through the gate',difficulty:'Beginner'},
 {id:'c16',area:'chipping',name:'Five-Club Up & Down',description:'Build greenside creativity by getting up and down with five different clubs.',setup:'Pick a greenside spot and grab five different clubs (e.g. LW, SW, GW, PW, 8-iron).',repsOrTime:'5 up-and-down attempts, one with each club',success:'Get up and down with all five, learning which club fits which situation',difficulty:'Advanced'},
-{id:'c17',area:'chipping',name:'One-Club Up & Down',description:'Sharpen touch and shot-making by using a single wedge for everything.',setup:'Pick one wedge and a spot off the green with a hole to aim at.',repsOrTime:'A full session, every greenside shot with the same club',success:'Get up and down consistently using only feel and technique to vary the shots',difficulty:'Intermediate'}
+{id:'c17',area:'chipping',name:'One-Club Up & Down',description:'Sharpen touch and shot-making by using a single wedge for everything.',setup:'Pick one wedge and a spot off the green with a hole to aim at.',repsOrTime:'A full session, every greenside shot with the same club',success:'Get up and down consistently using only feel and technique to vary the shots',difficulty:'Intermediate'},
+{id:'tb1',area:'bunker',name:'54° Contact to Short Side',description:'Groove clean bunker contact with a 54° first so the 60° feels easy afterwards.',setup:'Short-sided bunker lie with the pin close to your edge of the green.',repsOrTime:'10-15 balls with the 54°, then switch to the 60°',success:'Consistent sand entry point and every ball finishing on the green',difficulty:'Beginner'},
+{id:'tb2',area:'bunker',name:'Bunker Landing Areas',description:'Control where the ball first lands out of the sand instead of just getting it out.',setup:'Place 3 tees in a line on the green about 10 ft apart. Start about 7 yards from the first tee. Use the 60°.',repsOrTime:'Work through all 3 tees, several balls each',success:'Land within 3 ft of each tee',difficulty:'Intermediate'},
+{id:'tb3',area:'bunker',name:'Short Sided Lie Test',performance:true,description:'A scored test of every awkward bunker lie you actually face on the course.',setup:'Short-sided pin. Play each of these lies: perfect, ball sitting down slightly, upslope, downslope, ball above feet, ball below feet.',repsOrTime:'1 ball from each of the 6 lies',success:'PGA Tour average is inside 6 ft — measure and total your proximity',difficulty:'Advanced'},
+{id:'tb4',area:'bunker',name:'9 Hole Random Bunker',performance:true,description:'A 9-shot bunker scoring test mixing short and long sand shots.',setup:'Pick 9 random bunker shots around the practice bunker, including some long ones that call for the 54°.',repsOrTime:'9 shots, 1 ball each',success:'PGA Tour average is inside 6 ft each, or 54 ft total for all 9',difficulty:'Advanced'},
+{id:'tmi11',area:'mid_irons',name:'Two-Club Distance Tolerance',performance:true,description:'A tour-standard iron test on hitting exact numbers inside a tight left/right window.',setup:'Range with clear yardage markers. Hit 2 clubs to each of these distances: 95, 105, 115, 125, 135, 145, 155, 165, 175, 185, 195.',repsOrTime:'2 balls per distance',success:'Carry tolerance ±2 yds up to 125, ±3 to 155, ±4 to 175, ±5 beyond. Left/right tolerance 10 ft up to 115, 15 ft to 145, 20 ft to 175, 25 ft beyond',difficulty:'Advanced'},
+{id:'tp25',area:'putting',name:'Short Pace Drill',description:'Learn to roll short putts at the right speed by using a marker behind the hole.',setup:'Use a fake hole with a marker 2 ft behind it. Putt from 6, 9, 12, 15 and 18 ft, both uphill and downhill.',repsOrTime:'5 putts total finishing between the hole and the marker, or start over',success:'5 in a row that stop between the hole and the marker',difficulty:'Intermediate'},
+{id:'tp26',area:'putting',name:'Long Pace Work',description:'Build lag speed control from real long-putt distances.',setup:'Putt from 20, 30, 40, 50 and 60 ft, uphill and downhill. The 20-footer must reach the hole.',repsOrTime:'5 putts in a row inside 3 ft or start over',success:'5 in a row inside 3 ft at each distance',difficulty:'Advanced'},
+{id:'tp27',area:'putting',name:'Green Reading 9 Holes',description:'Train your read by committing to an apex and a line before every putt.',setup:'Play 9 holes on the practice green with 2 coins — one at the apex and one parallel to the hole, based on your green-reading style. Alternate right-to-left and left-to-right putts.',repsOrTime:'9 holes',success:'Ball rolls over your apex coin on the majority of putts',difficulty:'Intermediate'},
+{id:'tp28',area:'putting',name:'10 Ball Game',performance:true,description:'A short scored make test across five distances.',setup:'2 putts each from 4, 6, 8, 10 and 12 ft. Change the hole each time.',repsOrTime:'10 putts',success:'PGA Tour average is 6/10',difficulty:'Intermediate'},
+{id:'tp29',area:'putting',name:'25-Ball Make Drill',performance:true,description:'The big make-count benchmark — as random as you can make it.',setup:'5 putts from each of 4, 6, 8, 10 and 12 ft. Switch holes each putt and make it as random as possible.',repsOrTime:'25 putts',success:'PGA Tour average 14/25 · Elite 16/25 · Record 19/25',difficulty:'Advanced'},
+{id:'tp30',area:'putting',name:'Random Putt Challenge',performance:true,description:'20 fully random putts, exactly like you face them in a round.',setup:'Putt these distances in order: 10, 12, 8, 20, 12, 6, 15, 10, 17, 4, 12, 8, 15, 10, 4, 17, 20, 6, 12, 10 ft.',repsOrTime:'20 putts',success:'PGA Tour average is 9/20',difficulty:'Advanced'},
+{id:'tp31',area:'putting',name:'Perfect Putting Board',description:'Block practice on a putting board to lock in a repeatable stroke.',setup:'Set the putting board up on a 5 ft putt.',repsOrTime:'Make 10 in a row from each angle — straight, left-to-right, right-to-left (30 putts total)',success:'All three sets of 10 in a row completed',difficulty:'Intermediate'},
+{id:'tp32',area:'putting',name:'Breaking Putt Practice',description:'Prove your read by putting through a gate at the break point.',setup:'Pick a 10-20 ft breaking putt. Read it, then place 2 tees about 6 in apart at the break point of the putt. Putt through the tees, adjusting the tees until you hole it.',repsOrTime:'10 makes left-to-right and 10 makes right-to-left',success:'20 total makes through the gate',difficulty:'Advanced'},
+{id:'tp33',area:'putting',name:'Humpty Dumpty',description:'Trains a square face on short putts by giving you a tiny target.',setup:'A row of 5 balls on top of tees, spaced about 6 in apart. Putt from 3 ft away from the line.',repsOrTime:'Knock all 5 off in a row',success:'All 5 tees struck and balls knocked off consecutively',difficulty:'Intermediate'},
+{id:'tp34',area:'putting',name:'Short Speed Drill',description:'Control exactly where the ball enters the cup from short range.',setup:'Putts from 3, 4 and 5 ft.',repsOrTime:'3 putts at each distance — front of the cup, middle of the hole, back of the cup',success:'All 9 putts made at the intended speed',difficulty:'Intermediate'},
+{id:'tp35',area:'putting',name:'Clock Drill',description:'A classic short-putt circuit that builds volume from every angle.',setup:'Picture the hole as a clock face.',repsOrTime:'Make 12 two-footers from 12:00, 9 three-footers from 9:00, 6 four-footers from 6:00 and 3 five-footers from 3:00',success:'All 30 putts made',difficulty:'Beginner'},
+{id:'tp36',area:'putting',name:'Spoke Drill: Hard',description:'A brutal in-a-row short putt test with escalating distances.',setup:'Tees around the hole at 3, 6 and 10 ft.',repsOrTime:'Make 25 three-footers, 10 six-footers, then 7 ten-footers — all in a row',success:'Complete every level. If you miss, restart the level you are on',difficulty:'Advanced'},
+{id:'tp37',area:'putting',name:'Spoke Drill: Med',description:'A shorter in-a-row spoke test for a strong maintenance session.',setup:'Tees around the hole at 4, 5 and 8 ft.',repsOrTime:'Make 30 in a row from 4 ft, then 6/6 from 5 ft and 5/6 from 8 ft',success:'All three targets hit',difficulty:'Intermediate'},
+{id:'tp38',area:'putting',name:'3-4-5 Spoke Drill',description:'A quick 12-putt in-a-row circuit around the hole.',setup:'Set up 3, 4 and 5 ft spoke circles around the hole with tees.',repsOrTime:'One ball from each tee — 12 putts total',success:'Make all 12 in a row to complete',difficulty:'Intermediate'},
+{id:'tp39',area:'putting',name:'Pressure Putts',description:'Simulates a raised heart rate so you practise under real nerves.',setup:'Find a flat 5 ft putt and clear space to jog.',repsOrTime:'Jog around the green, then make 5 five-footers in a row',success:'5 in a row immediately after the jog',difficulty:'Intermediate'},
+{id:'tp40',area:'putting',name:'Drawback',description:'Lag putting where a sloppy first putt costs you.',setup:'Play 6 holes on the practice green from 20-40 ft. If the ball does not finish between a grip length and the hole, draw it back a full putter length.',repsOrTime:'6 holes',success:'Finish +1 or better',difficulty:'Advanced'},
+{id:'tp41',area:'putting',name:'Speed Control (Eyes on Hole)',description:'Train pure feel by looking at the hole while you putt.',setup:'Long putts from 30-40 ft, plus a 2 ft circle around the hole for the second part.',repsOrTime:'2-putt 5 different putts in a row looking at the hole on your first putt, then hit 5 different 20-footers in a row that finish inside a 2 ft circle',success:'Both sets of 5 completed in a row',difficulty:'Advanced'},
+{id:'tp42',area:'putting',name:'Four Corners',description:'Great pre-round speed calibration for any green.',setup:'Put four balls in the middle of the green.',repsOrTime:'Putt one ball to the fringe in all four directions, repeat until each stops within a putter length of the fringe',success:'All four directions dialled in',difficulty:'Beginner'},
+{id:'tp43',area:'putting',name:'Lag Speed Drill',description:'Advance through distances only when your speed is perfect.',setup:'Alignment stick 2 ft behind the hole. Tees at 5, 10, 15, 20, 25 and 30 ft.',repsOrTime:'Make the first putt to move back; from then on the ball must finish between the hole and the stick to advance',success:'Clear every distance in a row, or start over',difficulty:'Advanced'},
+{id:'tp44',area:'putting',name:'High Side Speed Drill',description:'Adds a start-line requirement to the lag speed ladder.',setup:'Use right-to-left or left-to-right breaking putts. Alignment stick 2 ft behind the hole, tees at 5, 10, 15, 20, 25 and 30 ft.',repsOrTime:'Ball must finish between hole and stick AND get past the front edge of the hole on the high side to advance',success:'Clear every distance in a row, or start over',difficulty:'Advanced'},
+{id:'tp45',area:'putting',name:'A-B-C Ladder Drill',description:'Precision lag control using a four-tee landing ladder.',setup:'Put 4 tees in the green 3 ft apart (A, B, C, B, A pattern). Putt from 15, 20, 30 and 40 ft.',repsOrTime:'Stop the ball at A, B, C, B, A then move to the next distance',success:'Complete the pattern at all four distances — make them in a row to add difficulty',difficulty:'Advanced'},
+{id:'tp46',area:'putting',name:'2 Putt Game',performance:true,description:'An 18-hole two-putt survival test from long range.',setup:'Use one ball, putting from 20 ft, then 30 ft, then 40 ft.',repsOrTime:'1 or 2 putt 18 holes in a row',success:'18 holes in a row without a 3-putt, or start over',difficulty:'Advanced'},
+{id:'tp47',area:'putting',name:'Finish Strong',description:'Three different pressure putts you must knock out consecutively.',setup:'Find a 40 ft putt, a 12 ft putt and a 5 ft left-to-right breaker.',repsOrTime:'2-putt the 40-footer, make the 12-footer, make the 5 ft breaker',success:'All three in a row to be done',difficulty:'Intermediate'},
+{id:'tp48',area:'putting',name:'Makes 10-15',description:'A mid-range make test using a different putt every time.',setup:'Pick putts between 10 and 15 ft on the practice green.',repsOrTime:'Make 3 out of 5 — every putt must be a different one',success:'3 of 5 made, or start over',difficulty:'Advanced'},
+{id:'tp49',area:'putting',name:'80 Putts',performance:true,description:'The full putting benchmark — 80 putts scored across five distances.',setup:'Set up putts at 3, 4, 5, 6 and 10 ft.',repsOrTime:'30 from 3 ft, 25 from 4 ft, 10 from 5 ft, 10 from 6 ft, 5 from 10 ft',success:'Goals: 30/30, 25/25, 10/10, 7/10, 2/10 — total goal is 74 one-putts',difficulty:'Advanced'},
+{id:'tc18',area:'chipping',name:'Landing Spot Contact Drill',description:'Control the first bounce with both wedges and three trajectories.',setup:'Place 3 tees on the green in a line about 15 ft apart. Start about 10 yards from the first tee.',repsOrTime:'Hit low, medium and "highish" to each tee with both the 54° and the 60°',success:'Land within 3 ft of each tee',difficulty:'Intermediate'},
+{id:'tc19',area:'chipping',name:'Random 3-Spot Fairway Chips',description:'Basic-to-medium random chipping with two clubs from every spot.',setup:'Pick 3 different chip shots from the fairway around the green.',repsOrTime:'2 balls from each spot with a different club — 6 shots total',success:'Every shot must finish inside 5 ft to pass',difficulty:'Intermediate'},
+{id:'tc20',area:'chipping',name:'9 Hole Random Short Game',performance:true,description:'A 9-shot short game scoring test across easy, medium and hard lies.',setup:'Pick 9 random shots around the green varying between easy, medium and hard.',repsOrTime:'9 shots, 1 ball each',success:'PGA Tour average would be UNDER 45 ft total proximity',difficulty:'Advanced'},
+{id:'tc21',area:'chipping',name:'Consecutive Up & Downs',description:'Five different chips, five different holes, all must be converted.',setup:'Take out 5 balls and hit each to a different pin — pick 1 easy, 3 medium and 1 hard. Then go putt all 5 out.',repsOrTime:'5 up and downs',success:'Get all 5 up and down before you are done',difficulty:'Advanced'},
+{id:'tc22',area:'chipping',name:'Landing Spot Chip Test',performance:true,description:'Knock out each wedge by proving you can land it on a towel.',setup:'Set your golf towel about 3-5 yards onto the green. Use all of your wedges.',repsOrTime:'Land 4 of 5 shots on the towel with one club to knock that club out, then repeat with every other wedge',success:'All wedges knocked out',difficulty:'Advanced'},
+{id:'tc23',area:'chipping',name:'Up & Down Chipping Test',performance:true,description:'Nine varied greenside shots scored on how many you get inside 5 ft.',setup:'Pick 9 different shots around the green — 3 easy, 3 medium, 3 hard. Every shot is different, drop your ball on every shot.',repsOrTime:'9 shots, measure with your own feet',success:'Get 5 of the 9 within 5 ft. If you only get 4, start over. Target is 60% up and down',difficulty:'Advanced'},
+{id:'tc24',area:'chipping',name:'Proximity Chipping Test',performance:true,description:'A scored proximity game where only tight chips keep you at even.',setup:'Pick 9 different shots around the green.',repsOrTime:'9 shots — inside 6 ft is EVEN, outside 6 ft is +1, a make is -1',success:'Finish +3 or better',difficulty:'Advanced'},
+{id:'tw6',area:'wedges_pitching',name:'50-60-70 Baskets',description:'Great par-5 layup practice hitting three exact wedge numbers.',setup:'Place baskets at 50, 60 and 70 yards.',repsOrTime:'Make 2 balls into each basket, but never 2 in a row into the same basket, and only 5 balls in a row to any one basket',success:'2 balls in all three baskets',difficulty:'Advanced'},
+{id:'td10',area:'driver_woods',name:'14 Pile Drill',description:'A fairway-finding game with your longest clubs where misses cost you.',setup:'Pick two targets 25 yards apart. Start with 14 balls in a pile.',repsOrTime:'Alternate between your woods, driver and hybrids — no more than 1 ball with each club in a row. Miss the gap and add 2 balls to the pile',success:'Finish when the pile is gone',difficulty:'Advanced'}
 ];
 const GAMES = [
 {id:'g_decade',name:'Decade (AIFC Routine)',players:'Solo · On-course',description:'Play any 10 holes and commit fully to your pre-shot routine on every shot.',how:'Before each shot: Assess the lie and target, set your Intent, Feel the shot, then Commit and go — no second-guessing once you start. Track how many of the 10 you executed cleanly.'},
@@ -218,7 +268,11 @@ const GAMES = [
 {id:'g_diffclub',name:'Different Club Off Every Tee',players:'Solo · On-course',description:'Build creativity and distance control by never hitting the same tee club twice.',how:'On each par 4 and par 5, tee off with a different club than you would normally hit that hole. You will shape shots and manage distances you do not usually face.'},
 {id:'g_updown',name:'Up & Down Challenge',performance:true,players:'Solo · On-course',description:'A round-long scrambling test that mirrors real short-game pressure.',how:'Any time you miss a green, drop a ball in a tough spot nearby and try to get up and down. Track how many of your misses you save over 18 — that is your scramble percentage.'},
 {id:'g_stableford',name:'Stableford (Points)',performance:true,players:'Solo · On-course',description:'Score by points instead of strokes so one blow-up hole never wrecks the round.',how:'Points per hole: eagle 5, birdie 4, par 2, bogey 1, double or worse 0. Play aggressively, add up your total, and set a points goal to beat.'},
-{id:'g_bogey',name:'Bogey or Better',performance:true,players:'Solo · On-course',description:'A patience and course-management test — no blow-up holes allowed.',how:'Goal: make bogey or better on every hole, with one pick-up allowed per nine. If you are about to go past bogey, pick up and move on. See how long a streak you can string together.'}
+{id:'g_bogey',name:'Bogey or Better',performance:true,players:'Solo · On-course',description:'A patience and course-management test — no blow-up holes allowed.',how:'Goal: make bogey or better on every hole, with one pick-up allowed per nine. If you are about to go past bogey, pick up and move on. See how long a streak you can string together.'},
+{id:'g_pushups',name:'On Course "Pushups"',players:'Solo · On-course',description:'Play 9 holes where every missed fairway or green costs you pushups.',how:'Hit the fairway and the green: no pushups. Miss the fairway but hit the green: no pushups (they cancel out). Miss the fairway only: 5 pushups. Hit the fairway but miss the green: 10 pushups. Miss both: 20 pushups.'},
+{id:'g_gir',name:'Greens In Regulation Points',performance:true,players:'Solo · On-course',description:'A points game scoring your tee-to-green performance instead of your strokes.',how:'Per hole: fairway hit +1, missed fairway 0, GIR +2, missed GIR -1, chip inside flag length +1. Max 3 points and min -1 per hole. Average score 30-32, good 33-35, great 36+.'},
+{id:'g_last4',name:'Last 4 Holes: Pressure',players:'Solo · On-course',description:'Simulates closing out a round when you are already under par.',how:'You start at -1 with 4 holes to play. Your goal is to stay at -1 or go further under par. Shoot -1 or better and you helped your team; if not, do 25 burpees.'},
+{id:'g_nobogey',name:"Don't Make A Bogey",performance:true,players:'Solo · On-course',description:'A GIR-and-scoring gauntlet where any bogey sends you backwards.',how:'Start on hole #1 or #10. Birdie: skip 1 hole (must hit GIR). Par: continue to the next hole (must hit GIR). Bogey: go back to the tee of the same hole. Worse than bogey: go back to the previous hole. You pass when you make it past 6 holes.'}
 ];
 const PRACTICE_GAMES = [
 {id:'g_21',name:'21',performance:true,players:'2+',description:'A closest-to-the-pin chipping game played to 21 points.',how:'Each player chips (2 balls each) from a shared spot to the pin. Closest scores 2 points, second closest scores 1. A chip-in scores 5 points instead of the normal 2 — but the second-closest player still only scores 1. Rotate to a new spot each round. First to 21 (or over) wins.'},
@@ -226,7 +280,17 @@ const PRACTICE_GAMES = [
 {id:'g_flags',name:'Flags Only',players:'Solo · Range',description:'Turn aimless range balls into real, target-focused reps.',how:'Every ball must be aimed at a specific flag at its true yardage — pick the flag, pick the club, and commit. No lazy swings. Great for learning your real carry numbers.'},
 {id:'g_atw',name:'Around the World',performance:true,players:'Solo · Short game',description:'A scored up-and-down test from all around the green.',how:'Pick 10 spots in a circle around a practice green. From each, try to get up and down in two. Count how many of the 10 you convert and beat your best.'},
 {id:'g_shotcaller',name:'Shot Caller',performance:true,players:'Solo · Range',description:'Commit to a full shot before every ball, just like on the course.',how:'Before each ball, call it out loud — club, shape, trajectory and target. Score a point for every shot you actually pull off. First to 10 points.'},
-{id:'g_bullseye',name:'Bullseye',performance:true,players:'Solo · Range',description:'A points game that rewards dialed-in distance and accuracy.',how:'Pick a target and imagine rings around it (5, 10, 15 ft). Hit 15 balls: 3 points inside the 5 ft ring, 2 inside 10 ft, 1 inside 15 ft. Aim for a total and beat it.'}
+{id:'g_bullseye',name:'Bullseye',performance:true,players:'Solo · Range',description:'A points game that rewards dialed-in distance and accuracy.',how:'Pick a target and imagine rings around it (5, 10, 15 ft). Hit 15 balls: 3 points inside the 5 ft ring, 2 inside 10 ft, 1 inside 15 ft. Aim for a total and beat it.'},
+{id:'g_seconds',name:'Speed Control: Seconds Game',performance:true,players:'Solo · Putting',description:'Sharpen your speed awareness by predicting how long the ball will roll.',how:'Putt to a hole from any distance. Before it stops, guess how many seconds the ball will take to stop — count out loud after you hit it. Scoring: 5 seconds or more off = 0 pts, between 2 and 5 seconds = 2 pts, between 1 and 2 seconds = 5 pts. Play until 20 points.'},
+{id:'g_10point',name:'10 Point Wedge Game',performance:true,players:'2+ · Short game',description:'A closest-to-the-pin wedge competition played with every wedge.',how:'Each player must use the same club. Play 3 rounds with each wedge. 3 points for a make, 2 points inside a club length, 1 point for closest. First to 10 wins.'},
+{id:'g_7pile',name:'Team 7 Pile Drill',players:'2+ · Range',description:'The pile drill as a head-to-head full swing team competition.',how:'Pick two targets 25 yards apart. Each team starts with 7 balls and alternates shots. Miss the gap and add balls to your pile. First team to clear their pile wins — if you start first the other team still gets a chance to tie you.'},
+{id:'g_updowncomp',name:'Chipping: Up & Downs Comp',players:'2+ · Short game',description:'An alternate-shot up and down competition around the green.',how:'Alternate who chips and who putts. Play 9 holes around the practice green. Low score wins.'},
+{id:'g_proxcomp',name:'Chipping: Proximity',players:'2+ · Short game',description:'Closest chip to the hole, scored in feet over 6 holes.',how:'Play 6 holes with a partner, combining your feet to the hole after each chip. The least total feet after 6 holes wins. A chip-in counts as 0 ft.'},
+{id:'g_knockout',name:'Putting: Knockout',players:'2+ · Putting',description:'A chase game around a ring of short putts.',how:'Put 6 tees around the hole at 6 ft, starting on opposite sides. When you make your putt, move clockwise to the next tee. The goal is to catch your teammate. Try it from 8 ft and 10 ft too.'},
+{id:'g_teammakes',name:'Putting: Team Makes',players:'2+ · Putting',description:'A team make-streak game that keeps backing you up.',how:'Start at 2 ft — everybody makes the putt, then move back 2 ft at a time. How far back can you get? Variation: how many 5-footers in a row can you make as a team, or with a partner against other teams.'},
+{id:'g_5points',name:'Putting: 5 Points',players:'2 · Putting',description:'A head-to-head putting duel between two holes.',how:'With a teammate, pick 2 holes 15-20 ft apart. Each of you stands at one hole and putts toward the other hole. Make it and you get a point; if you both make it, no points. First to five points wins.'},
+{id:'g_drawbackcomp',name:'Putting: Drawback',players:'2 · Putting',description:'Alternate shot putting where weak lags get pulled back.',how:'Play 6 holes of alternate shot drawback on the practice green. Any ball not finishing past the hole gets drawn back a putter length. You must putt out everything.'},
+{id:'g_indmakes',name:'Putting: Individual Makes',players:'2+ · Putting',description:'A make-five-in-a-row race from designated tees.',how:'Play 5 hole makes from designated tees, alternating each putt. The first player to make 5 in a row wins the competition.'}
 ];
 const ALL_GAMES = GAMES.concat(PRACTICE_GAMES);
 function findGame(id){ return allGames().find(g=>g.id===id); }
@@ -287,6 +351,7 @@ async function hydrateFromCloud(uid){
 async function clearCloud(){ if(cloudReady && currentUser){ try{ await fbDb.collection('users').doc(currentUser.uid).set({ data:{}, email:currentUser.email, updatedAt:Date.now() }); }catch(e){} } }
 
 function toggleAuthMode(){ state.authMode = (state.authMode==='signup')?'signin':'signup'; state.authError=null; render(); }
+function setAuthMode(m){ state.authMode = m; state.authError=null; render(); }
 function authErrorText(e){ const c=(e&&e.code)||'';
   if(c.includes('email-already-in-use')) return 'That email already has an account — try signing in instead.';
   if(c.includes('invalid-email')) return "That doesn't look like a valid email.";
@@ -743,13 +808,35 @@ function switchView(v){
 }
 
 /* ---------- render ---------- */
+function renderWelcome(){
+  const steps = [
+    ['1','Tell us about your game','A 2-minute setup: your handicap, your goal, and which parts of your game need the most work.'],
+    ['2','Get today\'s practice plan','Every day we build you a timed range session — the right drills, in the right order, for the time you actually have.'],
+    ['3','Track it and get better','Check off drills, keep your streak alive, and log your scores on tour-standard performance tests.']
+  ];
+  return `
+  <div class="welcomehero">
+    <div class="avatar welcomelogo"><img src="icon-180.png" alt=""></div>
+    <h1 class="welcometitle">Range Caddy</h1>
+    <p class="welcometag">Stop hitting balls with no plan.<br>Practice like a tour player.</p>
+  </div>
+  <div class="welcomesteps">
+    ${steps.map(([n,t,d])=>`<div class="welcomestep"><span class="stepnum">${n}</span><div><div class="steptitle">${t}</div><div class="stepdesc">${d}</div></div></div>`).join('')}
+  </div>
+  <button class="btn bigbtn" onclick="setAuthMode('signup')">Get Started — it's free</button>
+  <button class="btn secondary bigbtn" style="margin-top:12px" onclick="setAuthMode('signin')">I already have an account</button>
+  <p class="muted" style="text-align:center;margin-top:18px;font-size:12.5px">Over 150 drills and games from PGA Tour practice sheets.</p>
+  `;
+}
 function renderAuth(){
+  if(!state.authMode) return renderWelcome();
   const mode = state.authMode==='signup' ? 'signup' : 'signin';
   return `
-    <div style="text-align:center;margin-top:24px">
+    <button class="linkbtn" style="margin-top:18px" onclick="setAuthMode(null)">← Back</button>
+    <div style="text-align:center;margin-top:10px">
       <div class="avatar" style="width:90px;height:90px;margin:0 auto;overflow:hidden;background:var(--paper)"><img src="icon-180.png" style="width:100%;height:100%;object-fit:cover"></div>
-      <h1 style="margin-top:16px">Range Caddy</h1>
-      <p class="muted">${mode==='signup'?'Create an account to save your practice across devices.':'Sign in to pick up where you left off.'}</p>
+      <h1 style="margin-top:16px">${mode==='signup'?'Create your account':'Welcome back'}</h1>
+      <p class="muted">${mode==='signup'?'Your plans, streaks and stats save to your account.':'Sign in to pick up where you left off.'}</p>
     </div>
     <label>Email</label><input type="email" id="auth_email" autocomplete="email" placeholder="you@example.com" value="${escapeHtml(state.authEmail||'')}">
     <label>Password</label><input type="password" id="auth_pass" autocomplete="${mode==='signup'?'new-password':'current-password'}" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')doAuth()">
@@ -810,8 +897,9 @@ function renderProfileForm(isOnboarding){
       </div>
     </div>`).join('');
   return `
-    <h1>${isOnboarding?'Welcome to Range Caddy':'Update Your Profile'}</h1>
-    <p class="muted">${isOnboarding?"Quick setup so today's plan fits you.":'Update your details or retake the skill survey.'}</p>
+    <h1>${isOnboarding?"Let's set up your game":'Update Your Profile'}</h1>
+    <p class="muted">${isOnboarding?"Three quick sections. Takes about 2 minutes, and you'll never have to do it again.":'Update your details or retake the skill survey.'}</p>
+    ${isOnboarding?'<h2 style="margin-top:22px;font-size:20px">1. About you</h2>':''}
     <label>Profile Picture</label>
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
       <div class="avatar" style="overflow:hidden;cursor:pointer" onclick="document.getElementById('f_photo').click()">${draftPhoto?`<img src="${draftPhoto}" style="width:100%;height:100%;object-fit:cover">`:ICON_CAMERA}</div>
@@ -837,13 +925,13 @@ function renderProfileForm(isOnboarding){
       <button type="button" class="tabbtn ${draftMode==='untimed'?'active':''}" onclick="setDraftMode('untimed')">Untimed</button>
     </div>
     ${draftMode!=='untimed' ? `<label>Average session length (minutes)</label><input type="number" id="f_session" value="${escapeHtml(df.sessionLength)}" min="15" max="240" step="5">` : '<p class="muted" style="margin-top:8px">Drills run until you hit the success mark — no clock.</p>'}
-    <h2 style="margin-top:26px;font-size:20px">How do you like to start practice?</h2>
+    <h2 style="margin-top:26px;font-size:20px">${isOnboarding?"2. ":""}How do you like to start practice?</h2>
     <p class="muted" style="margin-top:2px;font-size:14px">Use the arrows to set the order you warm up through. Your plan follows this flow.</p>
     <div style="margin-top:10px">${startRows}</div>
-    <h2 style="margin-top:26px;font-size:20px">Rank what to work on</h2>
+    <h2 style="margin-top:26px;font-size:20px">${isOnboarding?"3. ":""}Rank what to work on</h2>
     <p class="muted" style="margin-top:2px;font-size:14px">Use the arrows. Most work needed goes at #1.</p>
     <div style="margin-top:10px">${rankRows}</div>
-    <button class="btn" style="margin-top:14px" onclick="saveProfileForm()">${isOnboarding?'Save & Build My Plan':'Save Changes'}</button>
+    <button class="btn ${isOnboarding?'bigbtn':''}" style="margin-top:18px" onclick="saveProfileForm()">${isOnboarding?'Build My First Plan →':'Save Changes'}</button>
   `;
 }
 
