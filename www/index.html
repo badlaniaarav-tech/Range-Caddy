@@ -54,6 +54,52 @@ p{margin:0 0 8px;line-height:1.45;}
 .btn.danger{background:var(--danger);}
 .btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
 .bigbtn{padding:19px 16px;font-size:17px;border-radius:18px;box-shadow:0 5px 16px rgba(47,82,51,.28);}
+/* --- Today page --- */
+.herocard{background:var(--fairway);color:var(--chalk);border-radius:22px;padding:18px 18px 20px;margin-top:10px;box-shadow:0 6px 20px rgba(47,82,51,.3);}
+.herotop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.herohi{font-size:22px;font-weight:800;line-height:1.15;}
+.herodate{font-size:12px;font-weight:700;opacity:.85;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.herostats{display:flex;gap:10px;margin-top:16px;}
+.herostat{flex:1;background:rgba(255,255,255,.14);border-radius:14px;padding:10px 8px;text-align:center;}
+.herostatnum{font-family:'Barlow Condensed',sans-serif;font-size:26px;line-height:1;}
+.herostatlbl{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;opacity:.85;margin-top:3px;}
+.progwrap{height:10px;border-radius:99px;background:rgba(255,255,255,.2);margin-top:16px;overflow:hidden;}
+.progbar{height:100%;background:var(--flag);border-radius:99px;transition:width .3s;}
+.progtext{font-size:12px;font-weight:700;margin-top:8px;opacity:.9;}
+.startbtn{width:100%;margin-top:14px;padding:17px;border:none;border-radius:16px;background:var(--flag);color:var(--ink);font-family:'Inter',sans-serif;font-weight:800;font-size:17px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);}
+.startbtn:active{opacity:.85;}
+.startbtn.done{background:rgba(255,255,255,.9);}
+.timecard{background:var(--paper);border-radius:18px;padding:14px 16px;margin-top:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.timerow{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.stepbtn{width:46px;height:46px;border-radius:14px;border:2px solid var(--fairway);background:var(--paper);color:var(--fairway);font-size:21px;font-weight:800;cursor:pointer;flex-shrink:0;font-family:'Inter',sans-serif;}
+.stepbtn:active{background:var(--fairway);color:var(--chalk);}
+.timeval{text-align:center;flex:1;}
+.timenum{font-family:'Barlow Condensed',sans-serif;font-size:36px;line-height:1;}
+.timelbl{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.65;}
+.sectionhead{margin:26px 0 4px;font-size:22px;}
+.sectionsub{font-size:13.5px;line-height:1.45;opacity:.75;margin-bottom:12px;}
+.drillcard{background:var(--paper);border-radius:18px;padding:15px 16px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.08);display:flex;gap:13px;align-items:flex-start;position:relative;}
+.drillcard.isdone{opacity:.6;}
+.drillcard.focus{border-left:5px solid var(--flag);padding-left:12px;}
+.drillnum{flex-shrink:0;width:30px;height:30px;border-radius:10px;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;}
+.drillbody{flex:1;min-width:0;cursor:pointer;}
+.drillarea{font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--fairway);opacity:.85;}
+.drillname{font-size:16.5px;font-weight:800;margin:3px 0 4px;line-height:1.25;}
+.drilldesc{font-size:13px;line-height:1.4;opacity:.75;}
+.drilltarget{font-size:12.5px;font-weight:700;margin-top:7px;background:var(--chalk);border-radius:9px;padding:6px 9px;display:inline-block;}
+.drillopen{font-size:12.5px;font-weight:800;color:var(--fairway);margin-top:9px;display:inline-block;}
+.bigcheck{flex-shrink:0;width:42px;height:42px;border-radius:50%;border:2.5px solid var(--fairway);background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:var(--fairway);cursor:pointer;}
+.bigcheck.done{background:var(--fairway);color:var(--chalk);}
+.adjustbtn{width:100%;margin-top:2px;margin-bottom:12px;padding:13px;border-radius:14px;border:1.5px dashed var(--fairway);background:transparent;color:var(--fairway);font-family:'Inter',sans-serif;font-weight:800;font-size:14px;cursor:pointer;}
+.adjustpanel{background:var(--paper);border-radius:16px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.adjustlbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.6;margin:12px 0 6px;}
+.adjustlbl:first-child{margin-top:0;}
+.adjustrow{display:flex;gap:8px;flex-wrap:wrap;}
+.adjustrow .btn{width:auto;flex:1;min-width:120px;padding:11px 12px;font-size:13.5px;border-radius:12px;}
+.stepcard{background:var(--paper);border-radius:16px;border-left:5px solid var(--fairway);padding:14px 16px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+.stepcardlbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--fairway);margin-bottom:6px;}
+.stepcardtxt{font-size:14.5px;line-height:1.5;}
+.detailflag{margin-top:12px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:13px 16px;font-weight:800;font-size:14.5px;text-align:center;}
 .welcomehero{text-align:center;margin-top:22px;}
 .welcomelogo{width:104px;height:104px;margin:0 auto;overflow:hidden;background:var(--paper);box-shadow:0 6px 20px rgba(0,0,0,.18);}
 .welcomelogo img{width:100%;height:100%;object-fit:cover;}
@@ -977,49 +1023,55 @@ function renderToday(){
   const doneToday = plan.items.filter(it=>state.completions.some(c=>c.date===todayStr()&&c.drillId===it.drillId)).length;
 
   const st = state.profile.sessionTimer;
-  const timerRow = st ? `<div class="rowline" style="margin-top:8px"><span id="session_timer" class="num" style="font-size:20px">${fmtTime(st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed)}</span>
-      <div style="display:flex;gap:6px">${st.running?`<button class="btn small secondary" onclick="pauseSessionTimer()">Stop</button>`:`<button class="btn small secondary" onclick="startSessionTimer()">Resume</button>`}<button class="btn small" onclick="logSessionTimer()">Finish & Log</button></div></div>`
-    : `<button class="btn small" style="margin-top:8px" onclick="startSessionTimer()">Start Timer</button>`;
+  const timerRow = st ? `<div class="timerow" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><span id="session_timer" class="num" style="font-size:22px">${fmtTime(st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed)}</span>
+      <div style="display:flex;gap:8px">${st.running?`<button class="btn small secondary" onclick="pauseSessionTimer()">Pause</button>`:`<button class="btn small secondary" onclick="startSessionTimer()">Resume</button>`}<button class="btn small" onclick="logSessionTimer()">Finish & Log</button></div></div>`
+    : '';
 
   const timeCard = untimed ? `
-    <div class="card"><div class="rowline"><strong>Untimed session</strong><button class="btn small secondary" onclick="toggleSessionMode()">Switch to Timed</button></div>
-    <p class="muted" style="margin-top:6px">Work each drill until you hit its success mark, then move on.</p>${timerRow}</div>` : `
-    <div class="card" style="padding:7px 10px"><div class="rowline">
-      <span style="font-size:12px;font-weight:700">Today I have</span>
-      <span class="num" style="font-size:15px">${plan.minutes} min</span>
-      <div style="display:flex;gap:4px;align-items:center">
-        <button class="btn small secondary" style="padding:5px 9px;font-size:12px" onclick="adjustMinutes(-15)">−15</button>
-        <button class="btn small secondary" style="padding:5px 9px;font-size:12px" onclick="adjustMinutes(15)">+15</button>
-        <input type="number" id="custom_min" placeholder="Custom" style="width:56px;padding:5px 6px;font-size:12px">
-        <button class="btn small secondary" style="padding:5px 9px;font-size:12px" onclick="setCustomMinutes()">Set</button>
+    <div class="timecard">
+      <div class="timerow"><div><div style="font-weight:800;font-size:15px">Untimed session</div><div class="muted" style="font-size:12.5px;margin-top:3px">Work each drill until you hit its success mark.</div></div>
+      <button class="btn small secondary" style="flex-shrink:0" onclick="toggleSessionMode()">Use a clock</button></div>${timerRow}</div>` : `
+    <div class="timecard">
+      <div class="timerow">
+        <button class="stepbtn" onclick="adjustMinutes(-15)">−</button>
+        <div class="timeval"><div class="timenum">${plan.minutes} MIN</div><div class="timelbl">How long I have today</div></div>
+        <button class="stepbtn" onclick="adjustMinutes(15)">+</button>
       </div>
-    </div>
-    <div class="rowline" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
-      <button class="linkbtn" style="font-size:12px" onclick="toggleSessionMode()">Switch to Untimed</button>
-      ${st ? '' : `<button class="btn small" onclick="startSessionTimer()">▶ Start Timer</button>`}
-    </div>
-    ${st ? timerRow : ''}
+      <p class="muted" style="font-size:12px;text-align:center;margin:9px 0 0">Fewer minutes = fewer drills. We always keep what you need most.</p>
+      ${timerRow}
     </div>`;
 
   const dpref = state.profile.difficultyPref || 'normal';
-  const sessionHeader = `
-    <div class="rowline"><h2>Your Session</h2>
-      <div style="display:flex;gap:12px">
-        ${state.swapMode ? `<button class="linkbtn" onclick="swapSelected()">Swap (${state.swapSelection.size})</button><button class="linkbtn" onclick="toggleSwapMode()">Cancel</button>`
-          : `<button class="linkbtn" onclick="toggleSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateToday()">Regenerate all</button>`}
+  const adjustPanel = state.adjustOpen ? `
+    <div class="adjustpanel">
+      <div class="rowline"><strong style="font-size:15px">Adjust today's plan</strong><button class="linkbtn" onclick="toggleAdjust()">Done</button></div>
+      <div class="adjustlbl" style="margin-top:12px">How hard should the targets be?</div>
+      <div style="display:flex;gap:6px">
+        <button class="diffbtn ${dpref==='easier'?'active':''}" onclick="setDifficultyPref('easier')">Easier</button>
+        <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Normal</button>
+        <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Harder</button>
       </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-      <span class="muted" style="font-size:12px">Difficulty:</span>
-      <button class="diffbtn ${dpref==='easier'?'active':''}" onclick="setDifficultyPref('easier')">Easier</button>
-      <button class="diffbtn ${dpref==='normal'?'active':''}" onclick="setDifficultyPref('normal')">Normal</button>
-      <button class="diffbtn ${dpref==='harder'?'active':''}" onclick="setDifficultyPref('harder')">Harder</button>
-    </div>
-    <div class="rowline" style="margin-bottom:10px">
-      <button class="linkbtn" onclick="switchView('buildplan')">Build your own plan instead →</button>
-      <button class="linkbtn" onclick="toggleReducedMode()">${state.reducedMode?'Full plan':'Fewer drills'}</button>
-    </div>`;
+      <div class="adjustlbl">Don't like these drills?</div>
+      <div class="adjustrow">
+        ${state.swapMode ? `<button class="btn" onclick="swapSelected()">Swap ${state.swapSelection.size} selected</button><button class="btn secondary" onclick="toggleSwapMode()">Cancel</button>`
+          : `<button class="btn secondary" onclick="toggleSwapMode()">Swap just some</button><button class="btn secondary" onclick="regenerateToday()">Regenerate all</button>`}
+      </div>
+      <div class="adjustlbl">Session size</div>
+      <div class="adjustrow">
+        <button class="btn secondary" onclick="toggleReducedMode()">${state.reducedMode?'Back to full plan':'Give me fewer drills'}</button>
+        <button class="btn secondary" onclick="setCustomMinutesPrompt()">Set exact minutes</button>
+      </div>
+      <div class="adjustlbl">Prefer to choose yourself?</div>
+      <div class="adjustrow"><button class="btn secondary" onclick="switchView('buildplan')">Build my own plan →</button>
+      ${untimed?'':`<button class="btn secondary" onclick="toggleSessionMode()">Switch to untimed</button>`}</div>
+    </div>` : `<button class="adjustbtn" onclick="toggleAdjust()">⚙ Adjust plan — swap drills, change difficulty</button>`;
 
+  const sessionHeader = `
+    <h2 class="sectionhead">Your practice plan</h2>
+    <p class="sectionsub">Work down the list in order. Tap a drill to see how to set it up, then tap the circle to check it off.</p>
+    ${adjustPanel}`;
+
+  let stepNo = 0;
   const cards = plan.items.map(item=>{
     const d = allDrills().find(x=>x.id===item.drillId) || {name:'Drill unavailable',description:'',setup:'',repsOrTime:'',success:'',difficulty:''};
     const comp = state.completions.find(c=>c.date===todayStr()&&c.drillId===item.drillId);
@@ -1027,21 +1079,23 @@ function renderToday(){
     const took = comp && comp.tookSeconds!=null ? comp.tookSeconds : null;
     const isFocus = item.area===state.ranking[0] && !item.fixed;
     const added = String(item.key).startsWith('added_');
-    return `<div class="card ${isFocus?'focus':''}">
-      <div class="rowline">
-        <span class="eyebrow">${areaLabel(item.area)}${item.fixed?' · Always First':(!untimed&&item.minutes?' · '+item.minutes+' min':'')}</span>
-        ${state.swapMode && !item.fixed ? `<input type="checkbox" ${state.swapSelection.has(item.key)?'checked':''} onclick="toggleSwapSelect('${item.key}')">`
-          : `<span class="checkcircle ${done?'done':''}" onclick="toggleComplete('${item.drillId}')">${done?'✓':''}</span>`}
+    stepNo++;
+    return `<div class="drillcard ${isFocus?'focus':''} ${done?'isdone':''}" id="drillcard_${stepNo}">
+      <span class="drillnum">${stepNo}</span>
+      <div class="drillbody" onclick="openDrill('${item.drillId}','today')">
+        <div class="drillarea">${areaLabel(item.area)}${item.fixed?' · always first':(!untimed&&item.minutes?' · '+item.minutes+' min':'')}${isFocus?' · your #1 focus':''}</div>
+        <div class="drillname">${escapeHtml(d.name)}</div>
+        <div class="drilldesc">${escapeHtml(d.description)}</div>
+        <div class="drilltarget">🎯 ${escapeHtml(d.repsOrTime)}</div>${targetTweak()}
+        ${took!=null?`<div class="muted" style="font-size:11.5px;margin-top:6px">⏱ Took ${fmtTime(took)}</div>`:''}
+        <div class="drillopen">Tap for full instructions ›</div>
+        ${added?`<button class="linkbtn" style="font-size:12px;color:var(--danger);margin-top:6px" onclick="event.stopPropagation();removePlanItem('${item.key}')">Remove</button>`:''}
       </div>
-      <div onclick="openDrill('${item.drillId}','today')" style="cursor:pointer">
-        <strong>${escapeHtml(d.name)}</strong>
-        <p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p>
-        <p class="reps">🎯 ${escapeHtml(d.repsOrTime)}</p>${targetTweak()}
-        ${took!=null?`<p class="muted" style="font-size:11.5px;margin-top:3px">⏱ Took ${fmtTime(took)}</p>`:''}
-      </div>
-      <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>${added?`<button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removePlanItem('${item.key}')">Remove</button>`:''}</div>
+      ${state.swapMode && !item.fixed
+        ? `<span class="bigcheck ${state.swapSelection.has(item.key)?'done':''}" onclick="toggleSwapSelect('${item.key}')">${state.swapSelection.has(item.key)?'✓':''}</span>`
+        : `<span class="bigcheck ${done?'done':''}" onclick="toggleComplete('${item.drillId}')" title="Mark done">${done?'✓':''}</span>`}
     </div>`;
-  }).join('') || '<div class="empty">No drills scheduled — try adjusting your session length.</div>';
+  }).join('') || '<div class="empty">No drills scheduled — try adding more time above.</div>';
 
   // add-drill panel
   const addPool = allDrills().filter(d=>!d.fixed && !plan.items.some(i=>i.drillId===d.id) && (state.addDrillArea==='all'||d.area===state.addDrillArea));
@@ -1055,32 +1109,41 @@ function renderToday(){
     </div>` : `<button class="btn secondary" onclick="toggleAddDrill()">+ Add More Drills</button>`;
 
   // performance & games section
-  const gamesHeader = `<h2>Performance & Games</h2>
-  <div style="display:flex;gap:14px;margin-bottom:2px">
+  const gamesHeader = `<h2 class="sectionhead">Test yourself</h2>
+  <p class="sectionsub">Scored challenges and games. Do these after your drills to see if the work is paying off — most have a PGA Tour benchmark to beat.</p>
+  <div style="display:flex;gap:14px;margin-bottom:10px">
     ${state.gameSwapMode ? `<button class="linkbtn" onclick="swapSelectedGames()">Swap (${state.gameSwapSelection.size})</button><button class="linkbtn" onclick="toggleGameSwapMode()">Cancel</button>`
-      : `<button class="linkbtn" onclick="toggleGameSwapMode()">Select to swap</button><button class="linkbtn" onclick="regenerateGames()">Regenerate all</button>`}
+      : `<button class="linkbtn" onclick="toggleGameSwapMode()">Swap some</button><button class="linkbtn" onclick="regenerateGames()">Regenerate all</button>`}
   </div>`;
   const todayGames = (plan.games||[]).map(id=>{ const g=findGame(id); if(!g) return '';
     const fav=state.favorites.includes(id);
     const gDone=state.completions.some(c=>c.date===todayStr()&&c.drillId===id&&c.isGame);
-    return `<div class="card">
-      <div class="rowline"><span class="eyebrow">${g.players}</span>
-        <div style="display:flex;align-items:center;gap:10px">
-          ${state.gameSwapMode ? `<input type="checkbox" ${state.gameSwapSelection.has(id)?'checked':''} onclick="toggleGameSwapSelect('${id}')">`
-            : `<span class="checkcircle ${gDone?'done':''}" onclick="toggleGameComplete('${id}')">${gDone?'✓':''}</span><button class="starbtn" onclick="toggleFavorite('${id}')">${fav?'★':'☆'}</button>`}
-        </div>
+    return `<div class="drillcard ${gDone?'isdone':''}">
+      <span class="drillnum" style="background:var(--flag);color:var(--ink)">🏆</span>
+      <div class="drillbody" onclick="openGame('${id}','today')">
+        <div class="drillarea">${escapeHtml(g.players)}${g.performance?' · scored':''}</div>
+        <div class="drillname">${escapeHtml(g.name)}</div>
+        <div class="drilldesc">${escapeHtml(g.description)}</div>
+        <div class="drillopen">Tap to see how it works ›</div>
       </div>
-      <div onclick="openGame('${id}','today')" style="cursor:pointer"><strong>${escapeHtml(g.name)}${g.performance?' <span class=\"perfbadge\">🏆 Performance</span>':''}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(g.description)}</p></div>
-      <div class="rowline"><button class="linkbtn" style="font-size:12px" onclick="openGame('${id}','today')">Open game ›</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeGameFromToday('${id}')">Remove</button></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:7px;flex-shrink:0">
+        ${state.gameSwapMode ? `<span class="bigcheck ${state.gameSwapSelection.has(id)?'done':''}" onclick="toggleGameSwapSelect('${id}')">${state.gameSwapSelection.has(id)?'✓':''}</span>`
+          : `<span class="bigcheck ${gDone?'done':''}" onclick="toggleGameComplete('${id}')">${gDone?'✓':''}</span><button class="starbtn" onclick="toggleFavorite('${id}')">${fav?'★':'☆'}</button>`}
+      </div>
     </div>`; }).join('') || '<div class="empty">No games today — add one from the Games tab.</div>';
   const perfDrillCards = (plan.perfDrills||[]).map(item=>{
     const d = allDrills().find(x=>x.id===item.drillId); if(!d) return '';
     const done = state.completions.some(c=>c.date===todayStr()&&c.drillId===item.drillId);
-    return `<div class="card">
-      <div class="rowline"><span class="eyebrow">${areaLabel(item.area)} · 🏆 Performance</span>
-        <span class="checkcircle ${done?'done':''}" onclick="toggleComplete('${item.drillId}')">${done?'✓':''}</span></div>
-      <div onclick="openDrill('${item.drillId}','today')" style="cursor:pointer"><strong>${escapeHtml(d.name)}</strong><p class="muted" style="font-size:12.5px">${escapeHtml(d.description)}</p></div>
-      <button class="linkbtn" style="font-size:12px" onclick="openDrill('${item.drillId}','today')">Open drill ›</button>
+    return `<div class="drillcard ${done?'isdone':''}">
+      <span class="drillnum" style="background:var(--flag);color:var(--ink)">🏆</span>
+      <div class="drillbody" onclick="openDrill('${item.drillId}','today')">
+        <div class="drillarea">${areaLabel(item.area)} · performance test</div>
+        <div class="drillname">${escapeHtml(d.name)}</div>
+        <div class="drilldesc">${escapeHtml(d.description)}</div>
+        <div class="drilltarget">🎯 ${escapeHtml(d.success)}</div>
+        <div class="drillopen">Tap for full instructions ›</div>
+      </div>
+      <span class="bigcheck ${done?'done':''}" onclick="toggleComplete('${item.drillId}')">${done?'✓':''}</span>
     </div>`; }).join('');
   const gamePool = allGames().filter(g=>!(plan.games||[]).includes(g.id));
   const addGamePanel = state.addGameOpen ? `
@@ -1088,17 +1151,45 @@ function renderToday(){
       <div class="rowline"><strong>Add a game to today</strong><button class="linkbtn" onclick="toggleAddGame()">Close</button></div>
       ${gamePool.map(g=>`<div class="rowline" style="padding:7px 0;border-top:1px solid var(--line)"><span style="font-size:13px">${escapeHtml(g.name)} <span class="muted">· ${escapeHtml(g.players)}</span></span><button class="btn small" onclick="addGameToToday('${g.id}')">Add</button></div>`).join('') || '<p class="muted">All games are already in today.</p>'}
     </div>` : `<button class="btn secondary" onclick="toggleAddGame()">+ Add a Game</button>`;
-  const gamesSection = `<div class="divider"></div>${gamesHeader}<p class="muted" style="margin-bottom:10px">Performance drills and competitive games to test what you've built. Tap any to open it.</p>${perfDrillCards}${todayGames}${addGamePanel}`;
+  const gamesSection = `<div class="divider"></div>${gamesHeader}${perfDrillCards}${todayGames}${addGamePanel}`;
 
   const dateLabel = new Date().toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
-  return `<div class="rowline" style="align-items:center;gap:10px">
-    <h1 style="margin:0">Hey ${escapeHtml(state.profile.displayName)} 👋</h1>
-    <span style="display:flex;align-items:center;gap:6px;color:#000;font-weight:800;font-size:12.5px;white-space:nowrap;flex-shrink:0;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.7)">${ICON_CALENDAR}${dateLabel}</span>
+  const total = plan.items.length;
+  const pct = total ? Math.round(doneToday/total*100) : 0;
+  const allDone = total>0 && doneToday===total;
+  const cta = allDone
+    ? `<button class="startbtn done" onclick="switchView('practicetime')">🎉 Session complete — see your stats</button>`
+    : `<button class="startbtn" onclick="startPractice()">${doneToday===0?'▶  Start Practice':`▶  Continue — ${total-doneToday} drill${total-doneToday===1?'':'s'} to go`}</button>`;
+  return `
+  <div class="herocard">
+    <div class="herotop">
+      <div class="herohi">Hey ${escapeHtml(state.profile.displayName)} 👋</div>
+      <div class="herodate">${ICON_CALENDAR}${dateLabel}</div>
+    </div>
+    <div class="herostats">
+      <div class="herostat"><div class="herostatnum">${doneToday}/${total}</div><div class="herostatlbl">Drills done</div></div>
+      <div class="herostat"><div class="herostatnum">${streak}</div><div class="herostatlbl">🔥 Day streak</div></div>
+      <div class="herostat"><div class="herostatnum">${untimed?'∞':plan.minutes}</div><div class="herostatlbl">${untimed?'Untimed':'Minutes'}</div></div>
+    </div>
+    <div class="progwrap"><div class="progbar" style="width:${pct}%"></div></div>
+    <div class="progtext">${allDone?"Nice work — that's the whole plan done.":`Today you're working on: ${focusAreas}`}</div>
+    ${cta}
   </div>
-  <div class="card" style="margin-top:8px"><div class="rowline"><span class="num" style="font-size:30px">${doneToday}/${plan.items.length}</span>
-  <div style="text-align:right"><div>🔥 <strong>${streak}</strong> day streak</div><div class="muted" style="font-size:12px">${untimed?'Untimed session':plan.minutes+' min session'}</div></div></div>
-  <p class="muted" style="margin-top:8px">Focus: ${focusAreas}</p></div>
-  ${timeCard}${sessionHeader}${cards}${addPanel}${(plan.perfDrills&&plan.perfDrills.length)?`<p class="muted" style="text-align:center;font-size:11px;margin:8px 0 0;opacity:.85">Performance drills below ↓</p>`:''}${gamesSection}`;
+  ${timeCard}${sessionHeader}${cards}${addPanel}${gamesSection}`;
+}
+function toggleAdjust(){ state.adjustOpen = !state.adjustOpen; render(); }
+function setCustomMinutesPrompt(){
+  const v = prompt('How many minutes do you have today?', String(state.planCache?state.planCache.minutes:60));
+  if(v===null) return;
+  const n = parseInt(v,10);
+  if(isNaN(n) || n<15 || n>300){ setToast('Enter a number between 15 and 300'); return; }
+  state.todayMinutes = n; regenTodayWithMinutes();
+}
+function startPractice(){
+  if(!state.profile.sessionTimer) startSessionTimer();
+  const plan = state.planCache;
+  const next = (plan.items||[]).find(it=>!state.completions.some(c=>c.date===todayStr()&&c.drillId===it.drillId));
+  if(next) openDrill(next.drillId,'today'); else render();
 }
 
 function renderBuildPlan(){
@@ -1151,23 +1242,21 @@ function renderDrillDetail(){
   return `<button class="linkback" onclick="closeDrill()">‹ Back</button>
   <div class="rowline"><span class="pill">${areaLabel(d.area)}</span><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
   <h1 style="margin-top:8px">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
-  ${inPlan ? `<button class="btn secondary" onclick="setToast('Already in today\\'s plan')">✓ In Today's Plan</button>` : `<button class="btn" onclick="addDrillToToday('${d.id}')">Use / Add to Today</button>`}
-  <div class="card" style="margin-top:14px">
-    <p>${escapeHtml(d.description)}</p>
-    <p class="reps" style="font-size:13px">🎯 ${escapeHtml(d.repsOrTime)} · ${d.difficulty}</p>${targetTweak()}
-    <p style="font-size:13.5px"><strong>Setup:</strong> ${escapeHtml(d.setup)}</p>
-    <p style="font-size:13.5px"><strong>Success:</strong> ${escapeHtml(d.success)}</p>
-    <button class="linkbtn" style="font-size:12px;margin-top:6px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'▸'} ❓ Don't understand this drill? Explain it</button>
-    ${explainOpen?`<p class="muted" style="font-size:13px;margin-top:6px">${escapeHtml(explainDrill(d))}</p>`:''}
-  </div>
-  <div class="card">
-    <strong>Practice this drill</strong>
-    ${timing ? `<div style="text-align:center;margin:10px 0"><span id="timer_display" class="num" style="font-size:34px">${fmtTime(timing.elapsed)}</span></div>
-      <button class="btn" onclick="finishDrillTimed()">Finish & Log Time</button>
-      <button class="btn secondary" style="margin-top:8px" onclick="stopTimer()">Pause</button>`
-    : `<p class="muted" style="margin-top:6px">Start the timer to log how long you actually practice.</p>
-      <button class="btn" onclick="startTimer()">Start Practice Timer</button>
-      <button class="btn secondary" style="margin-top:8px" onclick="toggleComplete('${d.id}');setToast('${done?'Marked incomplete':'Marked complete'}')">${done?'✓ Completed today (tap to undo)':'Mark complete (no timer)'}</button>`}
+  <p class="muted" style="font-size:14px;line-height:1.5;margin-top:6px">${escapeHtml(d.description)}</p>
+  ${inPlan ? `<div class="detailflag">✓ This is in today's plan</div>` : `<button class="btn bigbtn" style="margin-top:12px" onclick="addDrillToToday('${d.id}')">+ Add to today's plan</button>`}
+  <div class="stepcard"><div class="stepcardlbl">① What you need</div><div class="stepcardtxt">${escapeHtml(d.setup)}</div></div>
+  <div class="stepcard"><div class="stepcardlbl">② What to do</div><div class="stepcardtxt">${escapeHtml(d.repsOrTime)}</div>${targetTweak()}</div>
+  <div class="stepcard" style="border-left-color:var(--flag)"><div class="stepcardlbl">③ You've passed when</div><div class="stepcardtxt">${escapeHtml(d.success)}</div><div class="muted" style="font-size:12px;margin-top:7px">Difficulty: ${d.difficulty}</div></div>
+  <button class="adjustbtn" style="margin-top:4px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'❓'} ${explainOpen?'Hide explanation':"Still not sure? Explain it simply"}</button>
+  ${explainOpen?`<div class="stepcard" style="border-left-color:var(--slate)"><div class="stepcardtxt">${escapeHtml(explainDrill(d))}</div></div>`:''}
+  <div class="timecard" style="margin-top:6px">
+    <strong style="font-size:15.5px">${timing?'Practicing now':'Ready to practice?'}</strong>
+    ${timing ? `<div style="text-align:center;margin:12px 0"><span id="timer_display" class="num" style="font-size:40px">${fmtTime(timing.elapsed)}</span></div>
+      <button class="btn bigbtn" onclick="finishDrillTimed()">✓ Done — log my time</button>
+      <button class="btn secondary" style="margin-top:10px" onclick="stopTimer()">Pause timer</button>`
+    : `<p class="muted" style="margin-top:6px;font-size:13px">Start the timer to track how long you actually spend on this, or just tick it off when you're finished.</p>
+      <button class="btn bigbtn" style="margin-top:12px" onclick="startTimer()">▶  Start this drill</button>
+      <button class="btn secondary" style="margin-top:10px" onclick="toggleComplete('${d.id}');setToast('${done?'Marked incomplete':'Marked complete'}')">${done?'✓ Completed today — tap to undo':'Mark it done (no timer)'}</button>`}
   </div>`;
 }
 
