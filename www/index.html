@@ -33,11 +33,11 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;background:#EDEAE0 url
 .navavatarbtn{width:44px;height:44px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;background:var(--flag);color:var(--ink);box-shadow:0 10px 24px rgba(0,0,0,.3);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 .navavatarbtn.active{border-color:var(--fairway);}
 .navavatarbtn img{width:100%;height:100%;object-fit:cover;display:block;}
-h1,h2,h3{font-family:'Inter',sans-serif;font-weight:900;letter-spacing:-0.01em;margin:0 0 4px;color:#000;text-shadow:0 0 6px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.7);}
+h1,h2,h3{font-family:'Inter',sans-serif;font-weight:900;letter-spacing:-0.01em;margin:0 0 4px;color:#000;text-shadow:0 0 4px #fff,0 0 9px #fff,0 0 16px rgba(255,255,255,.95),0 0 26px rgba(255,255,255,.75);}
 h1{font-size:25px;}
 h2{font-size:17px;}
 p{margin:0 0 8px;line-height:1.45;}
-.muted{color:#000;font-weight:600;font-size:13px;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.muted{color:#000;font-weight:600;font-size:13px;text-shadow:0 0 4px #fff,0 0 9px #fff,0 0 15px rgba(255,255,255,.9);}
 .num{font-family:'JetBrains Mono',monospace;font-weight:600;}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:11px;margin-bottom:9px;}
 .card.focus{border-left:4px solid var(--flag);}
@@ -54,6 +54,25 @@ p{margin:0 0 8px;line-height:1.45;}
 .btn.danger{background:var(--danger);}
 .btn.small{width:auto;padding:8px 14px;font-size:13px;border-radius:10px;}
 .bigbtn{padding:19px 16px;font-size:17px;border-radius:18px;box-shadow:0 5px 16px rgba(47,82,51,.28);}
+/* --- Splash / loading screen (paints before any script runs, fades out once the app is ready) --- */
+#splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(120% 90% at 50% 30%, #3E6B44 0%, #2F5233 42%, #1C3520 74%, #16281D 100%);
+  transition:opacity .45s ease, visibility .45s ease;}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
+.splashinner{display:flex;flex-direction:column;align-items:center;animation:splashIn .6s ease both;}
+.splashlogo{width:112px;height:112px;border-radius:28px;overflow:hidden;background:var(--chalk);
+  box-shadow:0 12px 40px rgba(0,0,0,.45), 0 0 0 5px rgba(255,255,255,.12);}
+.splashlogo img{width:100%;height:100%;object-fit:cover;display:block;}
+.splashname{margin-top:22px;font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.14em;color:#fff;line-height:1;}
+.splashtag{margin-top:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.82);}
+.splashtag span{color:var(--flag);}
+.splashdots{position:absolute;bottom:14%;display:flex;gap:9px;}
+.splashdots span{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);animation:splashDot 1.2s ease-in-out infinite;}
+.splashdots span:nth-child(2){animation-delay:.16s;}
+.splashdots span:nth-child(3){animation-delay:.32s;}
+@keyframes splashIn{from{opacity:0;transform:translateY(14px) scale(.94);}to{opacity:1;transform:none;}}
+@keyframes splashDot{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+@media (prefers-reduced-motion: reduce){.splashinner,.splashdots span{animation:none;}}
 /* --- Today page --- */
 .herocard{background:var(--fairway);color:var(--chalk);border-radius:22px;padding:18px 18px 20px;margin-top:10px;box-shadow:0 6px 20px rgba(47,82,51,.3);}
 .herotop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
@@ -76,8 +95,14 @@ p{margin:0 0 8px;line-height:1.45;}
 .timeval{text-align:center;flex:1;}
 .timenum{font-family:'Barlow Condensed',sans-serif;font-size:36px;line-height:1;}
 .timelbl{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.65;}
-.sectionhead{margin:26px 0 4px;font-size:22px;}
-.sectionsub{font-size:13.5px;line-height:1.45;margin-bottom:12px;color:#000;font-weight:600;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+/* Text that sits directly on the background photo needs a solid panel behind it — a glow alone
+   disappears against a bright sky. */
+.sectionband{background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:16px;padding:13px 15px;margin:26px 0 12px;box-shadow:0 2px 10px rgba(0,0,0,.1);}
+.sectionband:first-child{margin-top:0;}
+.sectionhead{margin:0;font-size:22px;color:var(--ink);text-shadow:none;}
+.sectionsub{font-size:13.5px;line-height:1.45;margin:5px 0 0;color:var(--ink);font-weight:600;text-shadow:none;opacity:.85;}
+.bandbtns{display:flex;gap:16px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
+.bandbtns .linkbtn{color:var(--fairway);text-shadow:none;font-size:13px;}
 .areahead{display:flex;align-items:center;gap:11px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:11px 14px;margin:20px 0 10px;box-shadow:0 3px 12px rgba(47,82,51,.25);}
 .areahead:first-child{margin-top:0;}
 .areahead.areadone{opacity:.55;}
@@ -123,13 +148,13 @@ p{margin:0 0 8px;line-height:1.45;}
 .explainp:last-child{margin-bottom:0;}
 .explainp strong{display:block;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--fairway);margin-bottom:3px;}
 .drillnav{margin-top:16px;}
-.drillnavpos{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;text-align:center;margin-bottom:9px;color:#000;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.drillnavpos{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;text-align:center;margin:0 auto 10px;color:var(--ink);text-shadow:none;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:99px;padding:6px 14px;width:fit-content;box-shadow:0 2px 8px rgba(0,0,0,.1);}
 .detailflag{margin-top:12px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:13px 16px;font-weight:800;font-size:14.5px;text-align:center;}
 .welcomehero{text-align:center;margin-top:22px;}
 .welcomelogo{width:104px;height:104px;margin:0 auto;overflow:hidden;background:var(--paper);box-shadow:0 6px 20px rgba(0,0,0,.18);}
 .welcomelogo img{width:100%;height:100%;object-fit:cover;}
 .welcometitle{margin-top:16px;font-size:34px;line-height:1.1;}
-.welcometag{margin-top:10px;font-size:16px;font-weight:600;line-height:1.45;color:#000;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.welcometag{margin-top:14px;font-size:16px;font-weight:600;line-height:1.5;color:var(--ink);text-shadow:none;background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:14px;padding:12px 14px;box-shadow:0 2px 10px rgba(0,0,0,.1);}
 .welcomesteps{margin:26px 0 24px;display:flex;flex-direction:column;gap:12px;}
 .welcomestep{display:flex;gap:14px;align-items:flex-start;background:var(--paper);border-radius:16px;padding:15px 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .stepnum{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;}
@@ -166,11 +191,19 @@ textarea{resize:vertical;min-height:50px;}
 .checkcircle{width:25px;height:25px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--chalk);font-size:13px;}
 .checkcircle.done{background:var(--fairway);border-color:var(--fairway);}
 .reps{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--fairway);font-weight:700;margin:5px 0;}
-.linkbtn{color:#000;font-size:13px;font-weight:800;cursor:pointer;background:none;border:none;padding:0;font-family:'Inter';text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.linkbtn{color:#000;font-size:13px;font-weight:800;cursor:pointer;background:none;border:none;padding:0;font-family:'Inter';text-shadow:0 0 4px #fff,0 0 9px #fff,0 0 15px rgba(255,255,255,.9);}
 .linkback{background:none;border:none;color:#000;font-weight:800;font-size:13px;cursor:pointer;padding:0;margin-bottom:10px;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
 </style>
 </head>
 <body>
+<div id="splash">
+  <div class="splashinner">
+    <div class="splashlogo"><img src="icon-180.png" alt=""></div>
+    <div class="splashname">RANGE CADDY</div>
+    <div class="splashtag">WHERE <span>PRACTICE</span> HAPPENS.</div>
+  </div>
+  <div class="splashdots"><span></span><span></span><span></span></div>
+</div>
 <div id="app">
   <div id="content"><div class="empty">Loading your bag…</div></div>
   <div class="navbar" id="navbar"></div>
@@ -1196,8 +1229,10 @@ function renderToday(){
     </div>` : `<button class="adjustbtn" onclick="toggleAdjust()">⚙ More options — session size, build your own</button>`;
 
   const sessionHeader = `
-    <h2 class="sectionhead">Your practice plan</h2>
-    <p class="sectionsub">Broken into blocks with a time budget for each. Work down in order — tap a drill for setup instructions, then tap the circle to check it off.</p>
+    <div class="sectionband">
+      <h2 class="sectionhead">Your practice plan</h2>
+      <p class="sectionsub">Broken into blocks with a time budget for each. Work down in order — tap a drill for setup instructions, then tap the circle to check it off.</p>
+    </div>
     ${controlBar}${adjustPanel}`;
 
   // Group today's drills by area so the session reads as blocks with their own time budget.
@@ -1260,11 +1295,14 @@ function renderToday(){
     </div>` : `<button class="btn secondary" onclick="toggleAddDrill()">+ Add More Drills</button>`;
 
   // performance & games section
-  const gamesHeader = `<h2 class="sectionhead">Test yourself</h2>
-  <p class="sectionsub">Scored challenges and games. Do these after your drills to see if the work is paying off — most have a PGA Tour benchmark to beat.</p>
-  <div style="display:flex;gap:14px;margin-bottom:10px">
-    ${state.gameSwapMode ? `<button class="linkbtn" onclick="swapSelectedGames()">Swap (${state.gameSwapSelection.size})</button><button class="linkbtn" onclick="toggleGameSwapMode()">Cancel</button>`
-      : `<button class="linkbtn" onclick="toggleGameSwapMode()">Swap some</button><button class="linkbtn" onclick="regenerateGames()">Regenerate all</button>`}
+  const gamesHeader = `
+  <div class="sectionband">
+    <h2 class="sectionhead">Test yourself</h2>
+    <p class="sectionsub">Scored challenges and games. Do these after your drills to see if the work is paying off — most have a PGA Tour benchmark to beat.</p>
+    <div class="bandbtns">
+      ${state.gameSwapMode ? `<button class="linkbtn" onclick="swapSelectedGames()">↻ Swap (${state.gameSwapSelection.size})</button><button class="linkbtn" onclick="toggleGameSwapMode()">Cancel</button>`
+        : `<button class="linkbtn" onclick="toggleGameSwapMode()">☑ Swap some</button><button class="linkbtn" onclick="regenerateGames()">↻ Regenerate all</button>`}
+    </div>
   </div>`;
   const todayGames = (plan.games||[]).map(id=>{ const g=findGame(id); if(!g) return '';
     const fav=state.favorites.includes(id);
@@ -1745,6 +1783,23 @@ function textToCoach(){
 }
 
 /* ---------- init ---------- */
+/* Splash: fades out once the first real screen is ready. Shown for a short minimum so it
+   doesn't flash on a fast load, and force-dismissed after 6s so a failure can never trap you. */
+const SPLASH_START = Date.now();
+let splashDone = false;
+function hideSplash(){
+  if(splashDone) return;
+  splashDone = true;
+  const s = document.getElementById('splash');
+  if(!s) return;
+  const wait = Math.max(0, 700 - (Date.now() - SPLASH_START));
+  setTimeout(()=>{
+    s.classList.add('hide');
+    setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 550);
+  }, wait);
+}
+setTimeout(hideSplash, 6000);
+
 async function init(){
   const prof = await sGet('profile', null);
   const act = await sGet('activity', {completions:[],favorites:[],customDrills:[],swingWork:[]});
@@ -1756,6 +1811,7 @@ async function init(){
   state.seenToday = await sGet('seen-today', null);
   state.view = state.profile ? 'today' : 'onboarding';
   render();
+  hideSplash();
   loadApprovedSuggestions().then(render);   // pull approved community drills into the Library
 }
 
@@ -1773,7 +1829,7 @@ if(cloudReady){
     }else{
       state.profile=null; state.ranking=null;
       state.completions=[]; state.favorites=[]; state.customDrills=[]; state.swingWork=[]; state.planCache=null;
-      state.view='auth'; render();
+      state.view='auth'; render(); hideSplash();
     }
   });
 }else{
