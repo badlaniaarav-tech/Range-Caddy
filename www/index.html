@@ -77,7 +77,16 @@ p{margin:0 0 8px;line-height:1.45;}
 .timenum{font-family:'Barlow Condensed',sans-serif;font-size:36px;line-height:1;}
 .timelbl{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.65;}
 .sectionhead{margin:26px 0 4px;font-size:22px;}
-.sectionsub{font-size:13.5px;line-height:1.45;opacity:.75;margin-bottom:12px;}
+.sectionsub{font-size:13.5px;line-height:1.45;margin-bottom:12px;color:#000;font-weight:600;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
+.areahead{display:flex;align-items:center;gap:11px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:11px 14px;margin:20px 0 10px;box-shadow:0 3px 12px rgba(47,82,51,.25);}
+.areahead:first-child{margin-top:0;}
+.areahead.areadone{opacity:.55;}
+.areaicon{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;background:var(--chalk);border-radius:50%;font-size:16px;}
+.areaname{font-size:16px;font-weight:800;line-height:1.2;}
+.areameta{font-size:11.5px;font-weight:600;opacity:.85;margin-top:2px;}
+.areaprog{flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;background:rgba(255,255,255,.16);border-radius:9px;padding:4px 10px;}
+.areaprog.done{background:var(--flag);color:var(--ink);}
+.drillcard.ingroup{margin-left:10px;}
 .drillcard{background:var(--paper);border-radius:18px;padding:15px 16px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.08);display:flex;gap:13px;align-items:flex-start;position:relative;}
 .drillcard.isdone{opacity:.6;}
 .drillcard.focus{border-left:5px solid var(--flag);padding-left:12px;}
@@ -90,7 +99,7 @@ p{margin:0 0 8px;line-height:1.45;}
 .drillopen{font-size:12.5px;font-weight:800;color:var(--fairway);margin-top:9px;display:inline-block;}
 .bigcheck{flex-shrink:0;width:42px;height:42px;border-radius:50%;border:2.5px solid var(--fairway);background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;color:var(--fairway);cursor:pointer;}
 .bigcheck.done{background:var(--fairway);color:var(--chalk);}
-.adjustbtn{width:100%;margin-top:2px;margin-bottom:12px;padding:13px;border-radius:14px;border:1.5px dashed var(--fairway);background:transparent;color:var(--fairway);font-family:'Inter',sans-serif;font-weight:800;font-size:14px;cursor:pointer;}
+.adjustbtn{width:100%;margin-top:2px;margin-bottom:12px;padding:13px;border-radius:14px;border:1.5px dashed var(--fairway);background:var(--paper);color:var(--fairway);font-family:'Inter',sans-serif;font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.07);}
 .adjustpanel{background:var(--paper);border-radius:16px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .adjustlbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.6;margin:12px 0 6px;}
 .adjustlbl:first-child{margin-top:0;}
@@ -99,12 +108,14 @@ p{margin:0 0 8px;line-height:1.45;}
 .stepcard{background:var(--paper);border-radius:16px;border-left:5px solid var(--fairway);padding:14px 16px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .stepcardlbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--fairway);margin-bottom:6px;}
 .stepcardtxt{font-size:14.5px;line-height:1.5;}
+.drillnav{margin-top:16px;}
+.drillnavpos{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;text-align:center;margin-bottom:9px;color:#000;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
 .detailflag{margin-top:12px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:13px 16px;font-weight:800;font-size:14.5px;text-align:center;}
 .welcomehero{text-align:center;margin-top:22px;}
 .welcomelogo{width:104px;height:104px;margin:0 auto;overflow:hidden;background:var(--paper);box-shadow:0 6px 20px rgba(0,0,0,.18);}
 .welcomelogo img{width:100%;height:100%;object-fit:cover;}
 .welcometitle{margin-top:16px;font-size:34px;line-height:1.1;}
-.welcometag{margin-top:10px;font-size:16px;font-weight:600;line-height:1.45;color:var(--ink);text-shadow:0 0 6px rgba(255,255,255,.85);}
+.welcometag{margin-top:10px;font-size:16px;font-weight:600;line-height:1.45;color:#000;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
 .welcomesteps{margin:26px 0 24px;display:flex;flex-direction:column;gap:12px;}
 .welcomestep{display:flex;gap:14px;align-items:flex-start;background:var(--paper);border-radius:16px;padding:15px 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .stepnum{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--fairway);color:var(--chalk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;}
@@ -441,7 +452,7 @@ function captureProfileFields(){
   if(!document.getElementById('f_name')) return;
   draftFields = draftFields || {};
   const g=id=>{ const el=document.getElementById(id); return el?el.value:undefined; };
-  [['f_name','displayName'],['f_handicap','handicap'],['f_level','skillLevel'],['f_hand','hand'],['f_goal','goal'],['f_session','sessionLength']].forEach(([id,key])=>{ const v=g(id); if(v!==undefined) draftFields[key]=v; });
+  [['f_name','displayName'],['f_handicap','handicap'],['f_level','skillLevel'],['f_commit','commitment'],['f_hand','hand'],['f_goal','goal'],['f_session','sessionLength']].forEach(([id,key])=>{ const v=g(id); if(v!==undefined) draftFields[key]=v; });
 }
 let timerInterval=null, sessionInterval=null;
 
@@ -456,24 +467,59 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 const DIFF_RANK = {Beginner:0, Intermediate:1, Advanced:2};
-// base 0-2 tier from handicap number (lower handicap = higher tier)
-function handicapTier(hcp){ if(/scratch/i.test(String(hcp))) return 2; const n=parseFloat(String(hcp).replace(/[^\d.\-+]/g,'')); if(isNaN(n)) return 1; if(n<=8) return 2; if(n<=18) return 1; return 0; }
-// combine handicap, optional self-reported level, and easier/harder preference into a target tier
-function targetTier(profile){ if(!profile) return 1;
-  let t = handicapTier(profile.handicap);
-  if(profile.skillLevel && profile.skillLevel!=='auto'){ t = {beginner:0,intermediate:1,advanced:2}[profile.skillLevel]; }
+// How much drill difficulty a handicap can carry, on the same 0-2 scale as DIFF_RANK.
+// Kept as a decimal so a 4 and a 14 handicap don't get treated as the same player.
+function handicapTierF(hcp){
+  const n = handicapNum(hcp);
+  if(n <= 0)  return 2.0;   // scratch or better
+  if(n <= 5)  return 1.8;
+  if(n <= 10) return 1.5;
+  if(n <= 15) return 1.1;
+  if(n <= 20) return 0.8;
+  if(n <= 28) return 0.4;
+  return 0.1;
+}
+// How much harder work someone's commitment to the game lets them take on.
+const COMMIT_TIER = {casual:-0.35, regular:0, serious:0.2, competitive:0.4};
+const COMMIT_LABEL = {casual:'Casual', regular:'Regular', serious:'Serious', competitive:'Competitive'};
+// Blend handicap, self-reported level and commitment into a target difficulty (0-2).
+// Handicap carries the most weight — it's the only measured number of the three.
+function targetTierF(profile){
+  if(!profile) return 1;
+  const hT = handicapTierF(profile.handicap);
+  const lvl = {beginner:0, intermediate:1, advanced:2}[profile.skillLevel];
+  let t = (lvl===undefined) ? hT : (hT*0.6 + lvl*0.4);
+  t += COMMIT_TIER[profile.commitment||'regular'] || 0;
   return Math.max(0, Math.min(2, t));
 }
+function targetTier(profile){ return Math.max(0, Math.min(2, Math.round(targetTierF(profile)))); }
 // Easier/Harder doesn't swap the drills — it only nudges the target. This note is shown on each drill's goal.
 function targetTweak(){ const p=state.profile&&state.profile.difficultyPref;
   if(p==='harder') return ' <span class="difftag">Harder — push it: add reps or tighten your success margin</span>';
   if(p==='easier') return ' <span class="difftag">Easier — ease it: fewer reps or a wider margin</span>';
   return ''; }
-// keep drills at/below the target tier; if none, fall back to closest
-function filterByDifficulty(pool, profile){ if(!pool.length) return pool; const t=targetTier(profile);
-  let ok = pool.filter(d=>(DIFF_RANK[d.difficulty]??1) <= t);
-  if(!ok.length) ok = pool.slice().sort((a,b)=>Math.abs((DIFF_RANK[a.difficulty]??1)-t)-Math.abs((DIFF_RANK[b.difficulty]??1)-t));
-  return ok;
+// Pick drills that actually MATCH the golfer rather than everything they could survive.
+// A scratch player shouldn't be handed beginner drills, and a 25 handicap shouldn't be
+// handed advanced ones — so we keep the band around their target difficulty and only widen
+// it when there aren't enough drills in that band to fill a session.
+function filterByDifficulty(pool, profile){
+  if(!pool.length) return pool;
+  // Scratch and better get the whole library — every drill is fair game at that level,
+  // easy ones included, since they're using them for sharpening rather than learning.
+  if(handicapNum(profile && profile.handicap) <= 0) return pool;
+  const t = targetTierF(profile);
+  const dist = d => Math.abs((DIFF_RANK[d.difficulty] ?? 1) - t);
+  // nothing more than about a tier above them — that's discouraging, not useful
+  let ok = pool.filter(d => (DIFF_RANK[d.difficulty] ?? 1) <= t + 0.7);
+  if(!ok.length) ok = pool.slice();
+  // The better the player, the wider the band — a 1 handicap shouldn't fall off a cliff into
+  // "Advanced only" just because they're a shot outside scratch.
+  const band = 0.75 + Math.max(0, t - 1.3) * 1.1;
+  const close = ok.filter(d => dist(d) <= band);
+  if(close.length >= 2) return close;
+  const wider = ok.filter(d => dist(d) <= band + 0.5);
+  if(wider.length >= 2) return wider;
+  return ok.slice().sort((a,b)=>dist(a)-dist(b));
 }
 
 async function persistActivity(){ await sSet('activity', {completions:state.completions, favorites:state.favorites, customDrills:state.customDrills, swingWork:state.swingWork}); }
@@ -498,6 +544,34 @@ function selectTodayGames(favorites, rand){
   const perfGames = pickPool(PRACTICE_GAMES.filter(g=>g.performance)).slice(0,2);
   return [...perfGames, courseGame].filter(Boolean);   // on-course game shown last
 }
+/* Turn whatever the golfer typed for handicap into a number. "+2" (better than scratch)
+   becomes -2, "scratch" becomes 0, anything unreadable falls back to a mid handicap. */
+function handicapNum(h){
+  if(h===null || h===undefined) return 15;
+  const s = String(h).trim().toLowerCase();
+  if(!s) return 15;
+  if(s.indexOf('scratch')>=0) return 0;
+  if(s[0]==='+'){ const p=parseFloat(s.slice(1)); return isNaN(p)?0:-p; }
+  const n = parseFloat(s);
+  return isNaN(n) ? 15 : n;
+}
+/* How many EXTRA drills (beyond one per area) the golfer gets at their normal session length.
+   Scratch (0) at Regular commitment is the reference: 2 drills in every area that supports it,
+   1 for bunker / mid irons / long irons. The higher the handicap, the tighter the session, so
+   the time goes into the parts of the game they need most instead of being spread thin.
+   A plus handicap earns one more, and how committed they are shifts it either way. */
+function extraDrillBudget(profile){
+  const h = handicapNum(profile.handicap);
+  let b;
+  if(h < 0)        b = 6;   // plus handicap — better than scratch
+  else if(h === 0) b = 5;   // scratch
+  else if(h <= 5)  b = 4;
+  else if(h <= 12) b = 3;
+  else if(h <= 20) b = 2;
+  else             b = 1;   // high handicap — focus hard on the top of their list
+  const c = {casual:-1, regular:0, serious:1, competitive:2}[profile.commitment||'regular'] || 0;
+  return Math.max(0, b + c);
+}
 function computePlan(dateStr, minutes, salt, excludeIds){
   const {ranking, profile, favorites} = state;
   const total = minutes;
@@ -513,14 +587,21 @@ function computePlan(dateStr, minutes, salt, excludeIds){
   // Bunker can drop out entirely only if it's last in the golfer's practice order.
   const reduced = !!state.reducedMode || total<=45;
   const bunkerLast = order.length && order[order.length-1]==='bunker';
-  // As "Today I have" drops in 15-min steps, trim the 2nd drill from areas one at a time —
-  // starting with whatever the golfer needs LEAST (bottom of their ranking) and working up
-  // toward what they need most, so the most-needed areas keep their extra drill the longest.
-  const extrasAreas = ranking.filter(a=> a!=='bunker' && a!=='mid_irons' && a!=='long_irons');
-  const dropOrder = [...extrasAreas].reverse();
-  const fullRef = profile.sessionLength || 90;
-  const stepsBelow = reduced ? dropOrder.length : Math.max(0, Math.floor((fullRef - total)/15));
-  const droppedExtra = new Set(dropOrder.slice(0, Math.min(dropOrder.length, stepsBelow)));
+  // Every area starts at 1 drill. Extra drills are then handed out from a budget, always to
+  // the areas the golfer needs MOST first (ranking order), so extra time thickens the top of
+  // their list and less time trims the bottom.
+  //  · The budget starts from handicap — a scratch player can spread across 2 drills per area,
+  //    a higher handicap gets a tighter, more focused session.
+  //  · Every 15 min above their normal session length adds one more drill; every 15 min below
+  //    removes one.
+  const spreadAreas = ranking.filter(a=> a!=='bunker' && a!=='mid_irons' && a!=='long_irons');
+  const singleAreas = ranking.filter(a=> a==='bunker' || a==='mid_irons' || a==='long_irons');
+  const upgrades = spreadAreas.map(a=>[a,2]).concat(singleAreas.map(a=>[a,2])).concat(spreadAreas.map(a=>[a,3]));
+  const fullRef = profile.sessionLength || 105;
+  const steps = Math.round((total - fullRef)/15);
+  let budget = reduced ? 0 : Math.max(0, extraDrillBudget(profile) + steps);
+  const counts = {}; ranking.forEach(a=>{ counts[a]=1; });
+  for(let i=0; i<upgrades.length && budget>0; i++){ counts[upgrades[i][0]] = upgrades[i][1]; budget--; }
   const items = [];
   order.forEach(areaId=>{
     if(reduced && areaId==='bunker' && bunkerLast) return;
@@ -531,16 +612,34 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     if(excludeIds && excludeIds.length){ const fresh=pool.filter(d=>!excludeIds.includes(d.id)); if(fresh.length) pool=fresh; }
     const favs = pool.filter(d=>favorites.includes(d.id));
     const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
-    // Drill counts: bunker, mid irons and long irons are fixed at exactly 1 drill (one fewer
-    // than everything else); every other area gets exactly 2 — unless reduced/dropped, then 1.
-    let numDrills = (areaId==='bunker' || areaId==='mid_irons' || areaId==='long_irons' || droppedExtra.has(areaId)) ? 1 : 2;
-    numDrills = Math.min(numDrills, pool.length);
+    let numDrills = Math.min(counts[areaId] || 1, pool.length);
     const chosen = [...favs, ...rest].slice(0,numDrills);
     if(areaId==='putting') items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:10,fixed:true});
     const perDrillMin = Math.max(5, Math.round((m||numDrills*8)/numDrills));
     chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:perDrillMin, fixed:false}));
   });
   if(!items.length){ const top=ranking[0]; const pool=allDrills().filter(d=>d.area===top&&!d.fixed&&!d.performance); if(pool.length) items.push({key:top+'_'+pool[0].id,area:top,drillId:pool[0].id,minutes:total,fixed:false}); }
+  // Rescale the per-drill minutes so the section time break-ups actually add up to the session
+  // length the golfer chose. Fixed items (the putting calibration) keep their set time, and no
+  // drill is allowed to drop below 5 minutes.
+  (function balanceMinutes(){
+    const flex = items.filter(i=>!i.fixed);
+    if(!flex.length) return;
+    const fixedMin = items.filter(i=>i.fixed).reduce((s,i)=>s+i.minutes,0);
+    let budgetMin = total - fixedMin;
+    const floor = 5;
+    if(budgetMin < flex.length*floor){ flex.forEach(i=>{ i.minutes = floor; }); return; }
+    const scale = budgetMin / flex.reduce((s,i)=>s+i.minutes,0);
+    let used = 0;
+    flex.forEach(i=>{ i.minutes = Math.max(floor, Math.round(i.minutes*scale)); used += i.minutes; });
+    // hand any rounding remainder to the drill in the area they need most
+    let diff = budgetMin - used;
+    for(let pass=0; diff!==0 && pass<flex.length*3; pass++){
+      const i = flex[pass % flex.length];
+      if(diff>0){ i.minutes++; diff--; }
+      else if(i.minutes>floor){ i.minutes--; diff++; }
+    }
+  })();
   // performance drills — kept out of the main session, shown in the Performance section (weakest areas first, up to 3)
   const perfDrills = [];
   ranking.forEach(areaId=>{
@@ -614,7 +713,13 @@ function closeDrill(){ stopTimer(true); state.detailDrillId=null; state.view=sta
 function startTimer(){ state.timer={start:Date.now(), elapsed:0}; timerInterval=setInterval(()=>{ if(state.timer){ state.timer.elapsed=Math.floor((Date.now()-state.timer.start)/1000); const el=document.getElementById('timer_display'); if(el) el.textContent=fmtTime(state.timer.elapsed); } },1000); render(); }
 function stopTimer(silent){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } if(!silent) render(); }
 function fmtTime(s){ const m=Math.floor(s/60), sec=s%60; return m+':'+String(sec).padStart(2,'0'); }
-async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); setToast('Logged '+fmtTime(secs)); closeDrill(); }
+async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); setToast('Logged '+fmtTime(secs)); if(state.detailFrom==='today' && nextDrillId()) goNextDrill(); else closeDrill(); }
+/* next-drill navigation within today's plan */
+function todayDrillSequence(){ const p=state.planCache; if(!p) return []; return (p.items||[]).map(i=>i.drillId).concat((p.perfDrills||[]).map(i=>i.drillId)); }
+function nextDrillId(){ const seq=todayDrillSequence(); const i=seq.indexOf(state.detailDrillId); return (i<0)?null:(seq[i+1]||null); }
+function prevDrillId(){ const seq=todayDrillSequence(); const i=seq.indexOf(state.detailDrillId); return (i<=0)?null:seq[i-1]; }
+function goNextDrill(){ stopTimer(true); state.timer=null; const n=nextDrillId(); if(n) openDrill(n,'today'); else { setToast("That's the last one — nice work!"); closeDrill(); } }
+function goPrevDrill(){ stopTimer(true); state.timer=null; const p=prevDrillId(); if(p) openDrill(p,'today'); }
 /* session-level timer (whole practice) */
 function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0; const lastMark=(prev&&prev.lastMark!=null)?prev.lastMark:0;
   state.profile.sessionTimer={start:Date.now()-base*1000, elapsed:base, running:true, lastMark};
@@ -778,12 +883,13 @@ async function saveProfileForm(){
   const hand = document.getElementById('f_hand').value;
   const goal = document.getElementById('f_goal').value.trim();
   const skillLevel = document.getElementById('f_level').value;
+  const commitment = document.getElementById('f_commit') ? document.getElementById('f_commit').value : (state.profile&&state.profile.commitment) || 'regular';
   const sessionMode = draftMode || 'timed';
   const sessionLength = sessionMode==='untimed' ? (state.profile?state.profile.sessionLength:105) : (parseInt(document.getElementById('f_session').value)||60);
   const startOrder = (draftStartOrder||AREAS.map(a=>a.id)).slice();
   const startArea = startOrder[0];
   const photo = draftPhoto || '';
-  state.profile = {displayName:name, handicap, hand, goal, skillLevel, sessionLength, startArea, startOrder, sessionMode, photo};
+  state.profile = {displayName:name, handicap, hand, goal, skillLevel, commitment, sessionLength, startArea, startOrder, sessionMode, photo};
   state.ranking = draftRanking.slice();
   await persistProfile();
   state.planCache = computePlan(todayStr(), sessionLength, '');
@@ -915,12 +1021,12 @@ function renderNav(){
 }
 
 function renderProfileForm(isOnboarding){
-  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',sessionLength:105,startArea:'putting',sessionMode:'timed'};
+  const p = state.profile || {displayName:'',handicap:'',hand:'R',goal:'',commitment:'regular',sessionLength:105,startArea:'putting',sessionMode:'timed'};
   draftRanking = draftRanking || (state.ranking?state.ranking.slice():AREAS.map(a=>a.id));
   if(draftStartOrder===null) draftStartOrder = (p.startOrder && p.startOrder.length) ? p.startOrder.slice() : [p.startArea, ...AREAS.map(a=>a.id).filter(x=>x!==p.startArea)];
   if(draftMode===null) draftMode = p.sessionMode;
   if(draftPhoto===null) draftPhoto = p.photo || '';
-  if(draftFields===null) draftFields = {displayName:p.displayName||'', handicap:p.handicap||'', skillLevel:p.skillLevel||'beginner', hand:p.hand||'R', goal:p.goal||'', sessionLength:p.sessionLength||90};
+  if(draftFields===null) draftFields = {displayName:p.displayName||'', handicap:p.handicap||'', skillLevel:p.skillLevel||'beginner', commitment:p.commitment||'regular', hand:p.hand||'R', goal:p.goal||'', sessionLength:p.sessionLength||105};
   const df = draftFields;
   const startRows = draftStartOrder.map((areaId,idx)=>`
     <div class="rankrow2" draggable="true" ondragstart="dragStartOrder(${idx})" ondragover="event.preventDefault()" ondrop="dropStartOrder(${idx})">
@@ -963,6 +1069,14 @@ function renderProfileForm(isOnboarding){
       <option value="intermediate" ${df.skillLevel==='intermediate'?'selected':''}>Intermediate</option>
       <option value="advanced" ${df.skillLevel==='advanced'?'selected':''}>Advanced</option>
     </select>
+    <label>How committed are you to golf?</label>
+    <select id="f_commit">
+      <option value="casual" ${df.commitment==='casual'?'selected':''}>Casual — I play for fun when I get the chance</option>
+      <option value="regular" ${(!df.commitment||df.commitment==='regular')?'selected':''}>Regular — I practise most weeks and want to improve</option>
+      <option value="serious" ${df.commitment==='serious'?'selected':''}>Serious — I practise several times a week</option>
+      <option value="competitive" ${df.commitment==='competitive'?'selected':''}>Competitive — I train to compete</option>
+    </select>
+    <p class="muted" style="margin-top:-3px;font-size:11.5px">This sets how many drills you get and how demanding they are.</p>
     <label>Dominant hand</label><select id="f_hand"><option value="R" ${df.hand==='R'?'selected':''}>Right</option><option value="L" ${df.hand==='L'?'selected':''}>Left</option></select>
     <label>Primary goal (optional)</label><textarea id="f_goal">${escapeHtml(df.goal)}</textarea>
     <label>Session style</label>
@@ -999,6 +1113,7 @@ function renderProfileSummary(){
   </div>
   <div class="card">
     <div class="inforow"><span>Handicap</span><span>${p.handicap||'—'}</span></div>
+    <div class="inforow"><span>Commitment</span><span>${COMMIT_LABEL[p.commitment||'regular']}</span></div>
     <div class="inforow"><span>Drill level</span><span>${['Beginner','Intermediate','Advanced'][targetTier(p)]}${p.difficultyPref&&p.difficultyPref!=='normal'?' · '+p.difficultyPref:''}</span></div>
     <div class="inforow"><span>Dominant hand</span><span>${p.hand==='L'?'Left':'Right'}</span></div>
     <div class="inforow"><span>Session mode</span><span>${p.sessionMode==='untimed'?'Untimed':'Timed · '+p.sessionLength+' min'}</span></div>
@@ -1022,6 +1137,7 @@ function renderToday(){
   const focusAreas = state.ranking.slice(0,3).map(areaLabel).join(' · ');
   const doneToday = plan.items.filter(it=>state.completions.some(c=>c.date===todayStr()&&c.drillId===it.drillId)).length;
 
+  const planMins = plan.items.reduce((s,i)=>s+(i.minutes||0),0);
   const st = state.profile.sessionTimer;
   const timerRow = st ? `<div class="timerow" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><span id="session_timer" class="num" style="font-size:22px">${fmtTime(st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed)}</span>
       <div style="display:flex;gap:8px">${st.running?`<button class="btn small secondary" onclick="pauseSessionTimer()">Pause</button>`:`<button class="btn small secondary" onclick="startSessionTimer()">Resume</button>`}<button class="btn small" onclick="logSessionTimer()">Finish & Log</button></div></div>`
@@ -1037,7 +1153,9 @@ function renderToday(){
         <div class="timeval"><div class="timenum">${plan.minutes} MIN</div><div class="timelbl">How long I have today</div></div>
         <button class="stepbtn" onclick="adjustMinutes(15)">+</button>
       </div>
-      <p class="muted" style="font-size:12px;text-align:center;margin:9px 0 0">Fewer minutes = fewer drills. We always keep what you need most.</p>
+      <p class="muted" style="font-size:12px;text-align:center;margin:9px 0 0">${planMins>plan.minutes
+        ? `This plan can't go below <strong>${planMins} min</strong> — every drill needs at least 5.`
+        : 'Fewer minutes = fewer drills. We always keep what you need most.'}</p>
       ${timerRow}
     </div>`;
 
@@ -1068,11 +1186,18 @@ function renderToday(){
 
   const sessionHeader = `
     <h2 class="sectionhead">Your practice plan</h2>
-    <p class="sectionsub">Work down the list in order. Tap a drill to see how to set it up, then tap the circle to check it off.</p>
+    <p class="sectionsub">Broken into blocks with a time budget for each. Work down in order — tap a drill for setup instructions, then tap the circle to check it off.</p>
     ${adjustPanel}`;
 
+  // Group today's drills by area so the session reads as blocks with their own time budget.
+  const groups = [];
+  plan.items.forEach(item=>{
+    let g = groups.find(x=>x.area===item.area);
+    if(!g){ g = {area:item.area, items:[]}; groups.push(g); }
+    g.items.push(item);
+  });
   let stepNo = 0;
-  const cards = plan.items.map(item=>{
+  const renderCard = item=>{
     const d = allDrills().find(x=>x.id===item.drillId) || {name:'Drill unavailable',description:'',setup:'',repsOrTime:'',success:'',difficulty:''};
     const comp = state.completions.find(c=>c.date===todayStr()&&c.drillId===item.drillId);
     const done = !!comp;
@@ -1080,10 +1205,10 @@ function renderToday(){
     const isFocus = item.area===state.ranking[0] && !item.fixed;
     const added = String(item.key).startsWith('added_');
     stepNo++;
-    return `<div class="drillcard ${isFocus?'focus':''} ${done?'isdone':''}" id="drillcard_${stepNo}">
+    return `<div class="drillcard ingroup ${isFocus?'focus':''} ${done?'isdone':''}" id="drillcard_${stepNo}">
       <span class="drillnum">${stepNo}</span>
       <div class="drillbody" onclick="openDrill('${item.drillId}','today')">
-        <div class="drillarea">${areaLabel(item.area)}${item.fixed?' · always first':(!untimed&&item.minutes?' · '+item.minutes+' min':'')}${isFocus?' · your #1 focus':''}</div>
+        <div class="drillarea">${item.fixed?'always first':(!untimed&&item.minutes?item.minutes+' min':areaLabel(item.area))}${d.difficulty?' · '+d.difficulty:''}</div>
         <div class="drillname">${escapeHtml(d.name)}</div>
         <div class="drilldesc">${escapeHtml(d.description)}</div>
         <div class="drilltarget">🎯 ${escapeHtml(d.repsOrTime)}</div>${targetTweak()}
@@ -1095,6 +1220,21 @@ function renderToday(){
         ? `<span class="bigcheck ${state.swapSelection.has(item.key)?'done':''}" onclick="toggleSwapSelect('${item.key}')">${state.swapSelection.has(item.key)?'✓':''}</span>`
         : `<span class="bigcheck ${done?'done':''}" onclick="toggleComplete('${item.drillId}')" title="Mark done">${done?'✓':''}</span>`}
     </div>`;
+  };
+  const cards = groups.map((g,gi)=>{
+    const mins = g.items.reduce((s,i)=>s+(i.minutes||0),0);
+    const gDoneN = g.items.filter(i=>state.completions.some(c=>c.date===todayStr()&&c.drillId===i.drillId)).length;
+    const rank = state.ranking.indexOf(g.area)+1;
+    const allGDone = gDoneN===g.items.length;
+    const head = `<div class="areahead ${allGDone?'areadone':''}">
+      <span class="areaicon">${AREA_ICON[g.area]}</span>
+      <div style="flex:1;min-width:0">
+        <div class="areaname">${gi+1}. ${areaLabel(g.area)}</div>
+        <div class="areameta">${g.items.length} drill${g.items.length===1?'':'s'}${untimed?'':' · about '+mins+' min'}${rank===1?' · your #1 focus':''}</div>
+      </div>
+      <span class="areaprog ${allGDone?'done':''}">${allGDone?'✓':gDoneN+'/'+g.items.length}</span>
+    </div>`;
+    return head + g.items.map(renderCard).join('');
   }).join('') || '<div class="empty">No drills scheduled — try adding more time above.</div>';
 
   // add-drill panel
@@ -1239,6 +1379,21 @@ function renderDrillDetail(){
   const timing = state.timer;
   const explainKey = 'explain_'+d.id;
   const explainOpen = state.expanded.has(explainKey);
+  const seq = state.detailFrom==='today' ? todayDrillSequence() : [];
+  const pos = seq.indexOf(d.id);
+  const nextId = pos>=0 ? (seq[pos+1]||null) : null;
+  const prevId = pos>0 ? seq[pos-1] : null;
+  const nextD = nextId ? allDrills().find(x=>x.id===nextId) : null;
+  const navRow = pos<0 ? '' : `
+  <div class="drillnav">
+    <div class="drillnavpos">Drill ${pos+1} of ${seq.length} today</div>
+    ${nextD ? `<button class="btn bigbtn" onclick="goNextDrill()">Next drill: ${escapeHtml(nextD.name)}  ›</button>`
+            : `<button class="btn bigbtn" onclick="closeDrill()">🎉 That's the last drill — finish up</button>`}
+    <div class="adjustrow" style="margin-top:10px">
+      ${prevId?`<button class="btn secondary" onclick="goPrevDrill()">‹ Previous drill</button>`:''}
+      <button class="btn secondary" onclick="closeDrill()">Back to my plan</button>
+    </div>
+  </div>`;
   return `<button class="linkback" onclick="closeDrill()">‹ Back</button>
   <div class="rowline"><span class="pill">${areaLabel(d.area)}</span><button class="starbtn" onclick="toggleFavorite('${d.id}')">${fav?'★':'☆'}</button></div>
   <h1 style="margin-top:8px">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
@@ -1257,7 +1412,8 @@ function renderDrillDetail(){
     : `<p class="muted" style="margin-top:6px;font-size:13px">Start the timer to track how long you actually spend on this, or just tick it off when you're finished.</p>
       <button class="btn bigbtn" style="margin-top:12px" onclick="startTimer()">▶  Start this drill</button>
       <button class="btn secondary" style="margin-top:10px" onclick="toggleComplete('${d.id}');setToast('${done?'Marked incomplete':'Marked complete'}')">${done?'✓ Completed today — tap to undo':'Mark it done (no timer)'}</button>`}
-  </div>`;
+  </div>
+  ${navRow}`;
 }
 
 function renderGames(){
