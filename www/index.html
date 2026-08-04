@@ -114,6 +114,14 @@ p{margin:0 0 8px;line-height:1.45;}
 .stepcard{background:var(--paper);border-radius:16px;border-left:5px solid var(--fairway);padding:14px 16px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .stepcardlbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--fairway);margin-bottom:6px;}
 .stepcardtxt{font-size:14.5px;line-height:1.5;}
+.steplist{margin:0;padding-left:0;list-style:none;counter-reset:stepc;}
+.steplist li{counter-increment:stepc;position:relative;padding-left:30px;font-size:14.5px;line-height:1.5;margin-bottom:9px;}
+.steplist li:last-child{margin-bottom:0;}
+.steplist li::before{content:counter(stepc);position:absolute;left:0;top:1px;width:21px;height:21px;border-radius:50%;background:var(--fairway);color:var(--chalk);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.explaincard{border-left-color:var(--slate);}
+.explainp{font-size:14px;line-height:1.55;margin:0 0 12px;}
+.explainp:last-child{margin-bottom:0;}
+.explainp strong{display:block;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--fairway);margin-bottom:3px;}
 .drillnav{margin-top:16px;}
 .drillnavpos{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;text-align:center;margin-bottom:9px;color:#000;text-shadow:0 0 5px rgba(255,255,255,.9),0 0 10px rgba(255,255,255,.6);}
 .detailflag{margin-top:12px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:13px 16px;font-weight:800;font-size:14.5px;text-align:center;}
@@ -1366,12 +1374,184 @@ function renderLibrary(){
   return `<h1>Drill Library</h1><select onchange="setLibFilter(this.value)" style="margin-bottom:12px">${options}</select>${list}`;
 }
 
+/* Plain-language context for each part of the game: what a drill there is actually training,
+   why it shows up on the scorecard, and the mistake most golfers make while practising it. */
+const AREA_WHY = {
+  putting: {
+    trains: 'your speed control, your start line and your read',
+    matters: 'Putting is about 40% of the shots in a round. Almost every three-putt comes from bad speed rather than a bad line, which is why so many putting drills care about where the ball finishes, not just whether it drops.',
+    mistake: 'Rolling ball after ball at the same hole from the same spot. Move around, change the putt, and make every rep count for something.'
+  },
+  chipping: {
+    trains: 'contact, landing spot and how the ball runs out',
+    matters: 'You will miss greens every round — good players just save par afterwards. Getting up and down turns bogeys into pars faster than any swing change.',
+    mistake: 'Aiming at the hole instead of a landing spot. Pick the exact patch of green you want the ball to land on and judge the shot on whether you hit it.'
+  },
+  bunker: {
+    trains: 'where the club enters the sand and how much sand you take',
+    matters: 'Bunker shots are the one shot where you never touch the ball, so the entry point is everything. Get that repeatable and greenside sand stops being scary.',
+    mistake: 'Trying to lift the ball out. Commit to hitting the sand a consistent distance behind it and let the loft do the work.'
+  },
+  wedges_pitching: {
+    trains: 'distance control on partial swings',
+    matters: 'Most approach shots inside 100 yards should finish close, and that gap is where amateurs lose the most strokes to good players. Knowing your carry numbers is worth more than extra distance.',
+    mistake: 'Swinging at everything full and decelerating to control it. Use different swing lengths at the same tempo instead.'
+  },
+  short_irons: {
+    trains: 'strike quality and hitting your number',
+    matters: 'These are your scoring clubs — the ones you have in hand when a birdie is realistic. Tight dispersion here directly lowers your scores.',
+    mistake: 'Hitting balls without a specific target or yardage. Every ball should have a number and a flag.'
+  },
+  mid_irons: {
+    trains: 'consistent contact and a repeatable shape',
+    matters: 'Mid irons are your par-3 and approach clubs from the middle of the fairway. Hitting more greens from here is the single biggest driver of lower handicaps.',
+    mistake: 'Judging shots only by distance. Watch your start line and your curve — that is what decides whether you hold the green.'
+  },
+  long_irons: {
+    trains: 'a shallow, controlled strike with the least forgiving clubs in the bag',
+    matters: 'Long irons come up on long par 3s and second shots into par 5s. You do not need to be brilliant with them — you need a reliable stock shot that finds the front of the green.',
+    mistake: 'Trying to help the ball into the air. Stay level and let the loft launch it.'
+  },
+  driver_woods: {
+    trains: 'finding the fairway and controlling your curve',
+    matters: 'Driving sets up every hole. A fairway with a shorter club beats a bomb in the trees every single time, and tee-shot penalties are the fastest way to a big number.',
+    mistake: 'Measuring every drive by how far it went. Score the shot on whether it finished in play, not on the number.'
+  }
+};
+/* The practical mechanics of actually running a drill in each area — the things a golf book
+   assumes you already know. These are the same no matter which drill in that area you picked. */
+const AREA_HOWTO = {
+  putting: [
+    'Pace the distances out instead of guessing. One normal walking step is close to 3 ft, so a 9 ft putt is three steps from the hole.',
+    'Push a tee into the green at every distance the drill asks for. That way each rep starts from the exact same spot and the test stays honest.',
+    'Read the putt before every single ball — pick the spot you want it to roll over, not just "left edge".',
+    'Hit each putt at the speed that would leave it about a foot past the hole if it missed. That is the pace that holds its line.',
+    'If the drill says "in a row" it means exactly that: one miss and you restart that level. The pressure is the drill.'
+  ],
+  chipping: [
+    'Pick your landing spot first — the actual patch of green you want the ball to bounce on — and put a tee or a coin there so you can see it.',
+    'Set up with your feet close together, most of your weight on your front foot, and the handle leaning slightly toward the target.',
+    'Keep that weight forward through the shot. Do not try to scoop or lift the ball; hit down and let the loft do it.',
+    'Judge every shot on whether it landed on your spot, not on where it finished. Where it finishes is just the roll-out.',
+    'To measure how close you finished, walk it out heel-to-toe — one of your shoe lengths is roughly one foot.'
+  ],
+  bunker: [
+    'Draw a line in the sand where you want the club to enter, about two inches behind the ball, then step in and set up to that line.',
+    'Dig your feet in until they feel stable. That drops you slightly lower, so grip down the handle a little to compensate.',
+    'Open the clubface first, then take your grip — never grip the club and twist it open afterwards.',
+    'Aim to splash a shallow patch of sand out onto the green. You should never make contact with the ball itself.',
+    'Rake the bunker when you finish and smooth your practice area — the same courtesy as on the course.'
+  ],
+  wedges_pitching: [
+    'Learn your swing lengths by feel: think of your lead arm as a clock hand — 7:30, 9:00 and 10:30 are three repeatable sizes.',
+    'Keep the tempo identical for all three. You change the length of the swing, never the speed of it.',
+    'Hit at least five balls to one number before switching, and write down the carry you actually got, not the one you wanted.',
+    'Carry is what matters here — where it lands, not where it finishes. Pick a target you can see it land next to.',
+    'If you are hitting past the number, take a shorter swing rather than easing off; decelerating is what causes chunks and thins.'
+  ],
+  short_irons: [
+    'Give every ball a specific target and a specific yardage before you swing. No aimless raking of balls.',
+    'Go through your full pre-shot routine on each one — pick the target, take a practice swing, step in, then go.',
+    'Watch the start line, not the finish. Where the ball begins its flight tells you what the clubface did.',
+    'Take a full break between balls so each is a fresh shot, exactly like on the course.',
+    'A good strike takes the ball first and the turf after. If your divot starts behind the ball, you are hitting it fat.'
+  ],
+  mid_irons: [
+    'Give every ball a number and a target before you hit it.',
+    'Build one stock shot — the same ball flight you can repeat under pressure — before trying to shape it both ways.',
+    'Check your alignment with a club on the ground every few shots. Aim drifts without you noticing.',
+    'Score each ball on start line and curve, not on distance. Distance follows a good strike.',
+    'Ball position sits roughly in the middle of your stance for mid irons, a touch forward of centre.'
+  ],
+  long_irons: [
+    'Play the ball an inch or so forward of where you would with a mid iron, and stand very slightly wider.',
+    'Do not try to help the ball into the air — these clubs launch it for you. Trying to lift it is what causes thin shots.',
+    'Smooth is faster here. Swing at about 80% and you will strike it better and hit it further than swinging hard.',
+    'Tee one up first if you are struggling, get the feel of a clean strike, then move to the turf.',
+    'Judge success on whether the ball would have found the front of the green — not on flushing it.'
+  ],
+  driver_woods: [
+    'Set up with the ball off the inside of your lead heel, tee it so half the ball sits above the crown, and tilt your shoulders so the lead one is higher.',
+    'Pick a narrow target in the distance — a tree or a mast — not just "the fairway".',
+    'Define an imaginary fairway on the range, maybe 30 yards wide, and score every ball as in or out.',
+    'Judge each drive on whether it finished in play, not on how far it went.',
+    'Make a full turn back and let it swing. Steering the ball is what produces the big miss.'
+  ]
+};
+/* Golf terms that appear in the drill text, in plain English. Only the ones actually used in
+   the drill you are looking at get shown. */
+const GLOSSARY = [
+  [/\bup (?:and|&) down\b/i, 'Up and down', 'Getting the ball in the hole in two shots from off the green — one chip or pitch, then one putt.'],
+  [/\bGIR\b|\bgreen(?:s)? in regulation\b/i, 'Green in regulation (GIR)', 'Hitting the green in the expected number of shots: 1 on a par 3, 2 on a par 4, 3 on a par 5.'],
+  [/\blag\b|\blag putting\b/i, 'Lag putt', 'A long putt where the goal is to leave it close enough for an easy tap-in, not to hole it.'],
+  [/\bspoke\b/i, 'Spoke', 'Tees arranged in a circle around the hole like the spokes of a wheel, so you putt from every angle.'],
+  [/\bgate\b/i, 'Gate', 'Two tees set just wider than the ball or the putter head. You have to roll the ball through the gap.'],
+  [/\bdrawback\b/i, 'Drawback', 'A penalty rule: if a putt finishes short or too far past, you drag the ball further away before the next one.'],
+  [/\bproximity\b/i, 'Proximity', 'How close to the hole your ball finishes, measured in feet. Lower is better.'],
+  [/\bshort[- ]sided\b/i, 'Short-sided', 'When the pin is close to your side of the green, leaving you almost no room to land the ball.'],
+  [/\bapex\b/i, 'Apex', 'The high point of a breaking putt — the spot the ball curves out to before turning back to the hole.'],
+  [/\bbreak(?:ing)?\b/i, 'Break', 'The amount a putt curves because the green is sloped. You aim away from the hole to allow for it.'],
+  [/\btolerance\b/i, 'Tolerance', 'The margin you are allowed. "±3 yards" means anything within 3 yards of the number counts as a pass.'],
+  [/\bcarry\b/i, 'Carry', 'How far the ball flies in the air before it lands, ignoring any roll afterwards.'],
+  [/\bstock shot\b/i, 'Stock shot', 'Your normal, repeatable shot — the one you would hit under pressure without thinking about it.'],
+  [/\bfringe\b/i, 'Fringe', 'The ring of slightly longer grass around the edge of the green.'],
+  [/\balignment stick\b/i, 'Alignment stick', 'A long thin rod you lay on the ground or stand up as a target. A spare club works just as well.'],
+  [/\bpin high\b/i, 'Pin high', 'Level with the flag — the right distance, even if it is left or right of the hole.'],
+  [/\btrajectory\b|\bflight\b/i, 'Trajectory', 'How high or low the ball flies. Low, medium and high are controlled by ball position and how far you follow through.'],
+  [/\blanding spot\b/i, 'Landing spot', 'The exact patch of green you want the ball to bounce on first, before it rolls out.'],
+  [/\bhigh side\b/i, 'High side', 'The uphill side of the hole on a breaking putt. Missing on the high side gives the ball a chance to fall in.'],
+  [/\bupslope\b|\bdownslope\b/i, 'Upslope / downslope', 'The ball sitting on ground that runs uphill or downhill relative to your stance.'],
+  [/\bball (?:above|below) (?:your )?feet\b/i, 'Ball above / below feet', 'Sidehill lies where the ball sits higher or lower than where you are standing, which changes how the ball curves.'],
+  [/\bscramble\b/i, 'Scramble', 'Playing more than one ball and taking the best result, or the percentage of missed greens where you still make par.'],
+  [/\bone[- ]putt\b/i, 'One-putt', 'Holing out with a single putt once you are on the green.'],
+  [/\bstableford\b/i, 'Stableford', 'A scoring format using points per hole instead of total strokes, so one bad hole cannot wreck the round.'],
+  [/\bbounce\b/i, 'Bounce', 'The angled sole on the bottom of a wedge that stops it digging into sand or turf.'],
+  [/\bloft\b/i, 'Loft', 'The angle on the clubface. More loft means a higher, shorter shot.'],
+  [/\d{2}\s*°|\b(?:LW|SW|GW|PW)\b|\blob wedge\b|\bsand wedge\b/i, 'Wedge degrees (54°, 60°)', 'Wedges are named by their loft in degrees. 46-48° is a pitching wedge (PW), 50-52° a gap wedge (GW), 54-56° a sand wedge (SW), and 58-60° a lob wedge (LW). Higher number = higher and shorter.'],
+  [/\bhybrid\b/i, 'Hybrid', 'A club that replaces a long iron. Easier to get airborne and more forgiving on mishits.'],
+  [/\bbirdie\b|\bbogey\b|\beagle\b|\bpar\b/i, 'Par, birdie, bogey', 'Par is the expected score for a hole. A birdie is one under par, an eagle two under, a bogey one over.'],
+  [/\bdivot\b/i, 'Divot', 'The strip of turf the club takes out after the ball. With irons the divot should start in front of the ball, never behind it.'],
+  [/\bthin\b|\bchunk\b|\bfat\b/i, 'Thin / fat', 'Thin means catching the ball too high so it flies low and hot. Fat (or a chunk) means hitting the ground first so it comes up short.'],
+  [/\btap[- ]in\b/i, 'Tap-in', 'A putt short enough that you can hole it without really thinking — usually inside two feet.']
+];
+function drillJargon(d){
+  const text = [d.description, d.setup, d.repsOrTime, d.success].join(' ');
+  const out = [];
+  GLOSSARY.forEach(([re,term,def])=>{ if(re.test(text) && !out.some(x=>x[0]===term)) out.push([term,def]); });
+  return out.slice(0,6);
+}
 function explainDrill(d){
-  return `This is a ${areaLabel(d.area).toLowerCase()} drill${d.difficulty?' rated '+d.difficulty.toLowerCase():''}. `
-    + `The idea: ${d.description} `
-    + `To set it up — ${d.setup} `
-    + `Work through it for ${d.repsOrTime}. `
-    + `You'll know it's working when: ${d.success}`;
+  const w = AREA_WHY[d.area] || {};
+  const area = areaLabel(d.area).toLowerCase();
+  const diff = d.difficulty ? d.difficulty.toLowerCase() : '';
+  const parts = [];
+  parts.push(`<strong>In plain English.</strong> ${escapeHtml(d.description)}`);
+  const lead = diff ? `${/^[aeiou]/.test(diff)?'an':'a'} ${diff}-level ${area} drill` : `a ${area} drill`;
+  if(w.trains) parts.push(`<strong>What it's training.</strong> This is ${lead}, and it works on ${w.trains}.`);
+  if(w.matters) parts.push(`<strong>Why it matters.</strong> ${w.matters}`);
+  parts.push(`<strong>How you'll know it's working.</strong> ${escapeHtml(d.success)}${/[.!?]$/.test(d.success)?'':'.'} Don't rush to finish it — the point is the standard, not the reps.`);
+  if(w.mistake) parts.push(`<strong>The usual mistake.</strong> ${w.mistake}`);
+  if(d.performance) parts.push(`<strong>This one is scored.</strong> Write your number down every time you do it. A performance test is only useful if you can compare today against last month.`);
+  return parts;
+}
+/* One action = a plain line; several = a numbered list. */
+function listOrText(steps){
+  if(!steps.length) return '<div class="stepcardtxt">—</div>';
+  if(steps.length===1) return `<div class="stepcardtxt">${escapeHtml(steps[0])}</div>`;
+  return `<ol class="steplist">${steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>`;
+}
+/* Break a setup or instruction blob into individual actions so it reads as real steps. */
+function splitSteps(text){
+  if(!text) return [];
+  // Hide the dots that aren't sentence ends (abbreviations, decimals) before splitting on them.
+  const D = '@@DOT@@';
+  const guard = String(text)
+    .replace(/\b(e|i)\.(g|e)\./gi, m=>m.split('.').join(D))
+    .replace(/\b(approx|vs)\./gi, m=>m.split('.').join(D))
+    .replace(/(\d)\.(\d)/g, '$1'+D+'$2');
+  return guard.split(/\.\s+|;\s+/)
+    .map(s=>s.trim().replace(/[.;,\s]+$/,'').split(D).join('.'))
+    .filter(s=>s.length>2);
 }
 function renderDrillDetail(){
   const d = allDrills().find(x=>x.id===state.detailDrillId);
@@ -1387,6 +1567,11 @@ function renderDrillDetail(){
   const nextId = pos>=0 ? (seq[pos+1]||null) : null;
   const prevId = pos>0 ? seq[pos-1] : null;
   const nextD = nextId ? allDrills().find(x=>x.id===nextId) : null;
+  const howTo = AREA_HOWTO[d.area] || [];
+  const jargon = drillJargon(d);
+  const setupSteps = splitSteps(d.setup);
+  const doSteps = splitSteps(d.repsOrTime);
+  const passSteps = splitSteps(d.success);
   const navRow = pos<0 ? '' : `
   <div class="drillnav">
     <div class="drillnavpos">Drill ${pos+1} of ${seq.length} today</div>
@@ -1402,11 +1587,18 @@ function renderDrillDetail(){
   <h1 style="margin-top:8px">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
   <p class="muted" style="font-size:14px;line-height:1.5;margin-top:6px">${escapeHtml(d.description)}</p>
   ${inPlan ? `<div class="detailflag">✓ This is in today's plan</div>` : `<button class="btn bigbtn" style="margin-top:12px" onclick="addDrillToToday('${d.id}')">+ Add to today's plan</button>`}
-  <div class="stepcard"><div class="stepcardlbl">① What you need</div><div class="stepcardtxt">${escapeHtml(d.setup)}</div></div>
-  <div class="stepcard"><div class="stepcardlbl">② What to do</div><div class="stepcardtxt">${escapeHtml(d.repsOrTime)}</div>${targetTweak()}</div>
-  <div class="stepcard" style="border-left-color:var(--flag)"><div class="stepcardlbl">③ You've passed when</div><div class="stepcardtxt">${escapeHtml(d.success)}</div><div class="muted" style="font-size:12px;margin-top:7px">Difficulty: ${d.difficulty}</div></div>
-  <button class="adjustbtn" style="margin-top:4px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'❓'} ${explainOpen?'Hide explanation':"Still not sure? Explain it simply"}</button>
-  ${explainOpen?`<div class="stepcard" style="border-left-color:var(--slate)"><div class="stepcardtxt">${escapeHtml(explainDrill(d))}</div></div>`:''}
+  <div class="stepcard"><div class="stepcardlbl">① Set it up</div>${listOrText(setupSteps)}</div>
+  <div class="stepcard"><div class="stepcardlbl">② Work through it</div>${listOrText(doSteps)}${targetTweak()}</div>
+  <div class="stepcard" style="border-left-color:var(--flag)"><div class="stepcardlbl">③ You've passed when</div>${listOrText(passSteps)}<div class="muted" style="font-size:12px;margin-top:9px">Difficulty: ${d.difficulty}</div></div>
+  <button class="adjustbtn" style="margin-top:4px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'❓'} ${explainOpen?'Hide explanation':"Still not sure? Explain this drill"}</button>
+  ${explainOpen?`
+    <div class="stepcard explaincard">${explainDrill(d).map(p=>'<p class="explainp">'+p+'</p>').join('')}</div>
+    ${howTo.length?`<div class="stepcard explaincard"><div class="stepcardlbl">The real way to do it</div>
+      <ol class="steplist">${howTo.map(s=>'<li>'+escapeHtml(s)+'</li>').join('')}</ol>
+      <p class="muted" style="font-size:12px;margin:11px 0 0">This is how you run any ${areaLabel(d.area).toLowerCase()} drill — it applies to all of them, not just this one.</p></div>`:''}
+    ${jargon.length?`<div class="stepcard explaincard"><div class="stepcardlbl">Words used in this drill</div>
+      ${jargon.map(([t,def])=>'<p class="explainp"><strong>'+escapeHtml(t)+'</strong>'+escapeHtml(def)+'</p>').join('')}</div>`:''}
+  `:''}
   <div class="timecard" style="margin-top:6px">
     <strong style="font-size:15.5px">${timing?'Practicing now':'Ready to practice?'}</strong>
     ${timing ? `<div style="text-align:center;margin:12px 0"><span id="timer_display" class="num" style="font-size:40px">${fmtTime(timing.elapsed)}</span></div>
