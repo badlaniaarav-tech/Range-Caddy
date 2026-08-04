@@ -130,6 +130,10 @@ p{margin:0 0 8px;line-height:1.45;}
 .adjustlbl:first-child{margin-top:0;}
 .adjustrow{display:flex;gap:8px;flex-wrap:wrap;}
 .adjustrow .btn{width:auto;flex:1;min-width:120px;padding:11px 12px;font-size:13.5px;border-radius:12px;}
+.sessiontimer{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+.sessionclock{font-size:26px;font-weight:600;line-height:1;display:inline-block;vertical-align:middle;}
+.timerstate{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-left:8px;vertical-align:middle;opacity:.55;}
+.timerstate.live{color:var(--fairway);opacity:1;}
 .ctrlcard{background:var(--paper);border-radius:16px;padding:14px 16px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .ctrllbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;opacity:.6;margin-bottom:8px;}
 .ctrlcard .ctrllbl + .adjustrow, .ctrlcard .diffrow + .ctrllbl{margin-top:0;}
@@ -721,10 +725,21 @@ async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=to
   }
   else {
     const mins = (loggedMinutes!=null?loggedMinutes:null);
-    // If the session timer is running, note how long this drill took (time since the last check-off) — shown, but NOT added to logged time.
+    // How long this drill took. Two ways to get it: the drill's own timer (which passes the
+    // seconds in directly), or — if you just tick a drill off — the gap on the session
+    // stopwatch since the last check-off. Either way it's shown, never added to logged time.
     let tookSeconds = null;
     const st = state.profile && state.profile.sessionTimer;
-    if(loggedMinutes==null && st){ const nowSecs = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed; tookSeconds = Math.max(0, nowSecs - (st.lastMark||0)); st.lastMark = nowSecs; await persistProfile(); }
+    if(loggedSeconds!=null){
+      tookSeconds = loggedSeconds;
+      // keep the session baseline in step so the next drill isn't credited with this one's time
+      if(st){ st.lastMark = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed; await persistProfile(); }
+    } else if(st){
+      const nowSecs = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed;
+      tookSeconds = Math.max(0, nowSecs - (st.lastMark||0));
+      st.lastMark = nowSecs;
+      await persistProfile();
+    }
     state.completions.push({date:t, drillId, minutes:mins, seconds:loggedSeconds!=null?loggedSeconds:(loggedMinutes!=null?loggedMinutes*60:null), logged: loggedMinutes!=null, tookSeconds});
   }
   await persistActivity(); render();
@@ -769,6 +784,17 @@ function goPrevDrill(){ stopTimer(true); state.timer=null; const p=prevDrillId()
 function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0; const lastMark=(prev&&prev.lastMark!=null)?prev.lastMark:0;
   state.profile.sessionTimer={start:Date.now()-base*1000, elapsed:base, running:true, lastMark};
   sessionInterval=setInterval(()=>{ const st=state.profile.sessionTimer; if(st&&st.running){ st.elapsed=Math.floor((Date.now()-st.start)/1000); const el=document.getElementById('session_timer'); if(el) el.textContent=fmtTime(st.elapsed); } },1000); render(); }
+/* A running stopwatch survives in storage but its interval doesn't survive a reload —
+   restart the ticking if we come back to a session that was still running. */
+function ensureSessionTicking(){
+  const st = state.profile && state.profile.sessionTimer;
+  if(!st || !st.running || sessionInterval) return;
+  sessionInterval = setInterval(()=>{
+    const s = state.profile && state.profile.sessionTimer;
+    if(s && s.running){ s.elapsed = Math.floor((Date.now()-s.start)/1000);
+      const el = document.getElementById('session_timer'); if(el) el.textContent = fmtTime(s.elapsed); }
+  }, 1000);
+}
 function pauseSessionTimer(){ const st=state.profile.sessionTimer; if(st){ st.elapsed=Math.floor((Date.now()-st.start)/1000); st.running=false; } if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;} render(); }
 async function logSessionTimer(){ const st=state.profile.sessionTimer; if(!st) return; const secs=st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed; const mins=Math.max(1,Math.round(secs/60));
   if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;}
@@ -1175,10 +1201,27 @@ function renderToday(){
   const doneToday = plan.items.filter(it=>state.completions.some(c=>c.date===todayStr()&&c.drillId===it.drillId)).length;
 
   const planMins = plan.items.reduce((s,i)=>s+(i.minutes||0),0);
+  // Whole-session stopwatch. Always visible so it can be started and stopped on its own,
+  // separate from the per-drill timer on each drill page.
+  ensureSessionTicking();
   const st = state.profile.sessionTimer;
-  const timerRow = st ? `<div class="timerow" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)"><span id="session_timer" class="num" style="font-size:22px">${fmtTime(st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed)}</span>
-      <div style="display:flex;gap:8px">${st.running?`<button class="btn small secondary" onclick="pauseSessionTimer()">Pause</button>`:`<button class="btn small secondary" onclick="startSessionTimer()">Resume</button>`}<button class="btn small" onclick="logSessionTimer()">Finish & Log</button></div></div>`
-    : '';
+  const stSecs = st ? (st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed) : 0;
+  const timerRow = `
+    <div class="sessiontimer">
+      <div class="timerow">
+        <div>
+          <div class="ctrllbl" style="margin:0 0 3px">Session stopwatch</div>
+          <span id="session_timer" class="num sessionclock">${fmtTime(stSecs)}</span>
+          ${st ? `<span class="timerstate ${st.running?'live':''}">${st.running?'● running':'paused'}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          ${!st ? `<button class="btn small" onclick="startSessionTimer()">▶ Start</button>`
+            : st.running ? `<button class="btn small secondary" onclick="pauseSessionTimer()">⏸ Stop</button><button class="btn small" onclick="logSessionTimer()">Finish &amp; Log</button>`
+            : `<button class="btn small secondary" onclick="startSessionTimer()">▶ Resume</button><button class="btn small" onclick="logSessionTimer()">Finish &amp; Log</button>`}
+        </div>
+      </div>
+      ${!st ? `<p class="muted" style="font-size:11.5px;margin:8px 0 0">Times your whole practice. Each drill also has its own timer so you can see how long that drill took you.</p>` : ''}
+    </div>`;
 
   const timeCard = untimed ? `
     <div class="timecard">
