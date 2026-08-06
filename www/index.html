@@ -130,6 +130,20 @@ p{margin:0 0 8px;line-height:1.45;}
 .adjustlbl:first-child{margin-top:0;}
 .adjustrow{display:flex;gap:8px;flex-wrap:wrap;}
 .adjustrow .btn{width:auto;flex:1;min-width:120px;padding:11px 12px;font-size:13.5px;border-radius:12px;}
+/* "What do you want to work on today?" picker */
+.focusbtn{width:100%;margin-bottom:9px;padding:10px 13px;border-radius:12px;border:1.5px solid var(--fairway);background:var(--paper);
+  color:var(--fairway);font-family:'Inter',sans-serif;font-weight:800;font-size:13px;cursor:pointer;text-align:left;box-shadow:0 2px 8px rgba(0,0,0,.07);}
+.focusbtn:active{background:#EFF4ED;}
+.focuscard{background:var(--paper);border-radius:14px;padding:12px 13px;margin-bottom:9px;box-shadow:0 2px 10px rgba(0,0,0,.09);}
+.focusgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+.focuschip{display:flex;align-items:center;gap:6px;padding:8px 9px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);
+  color:var(--ink);font-family:'Inter',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-align:left;line-height:1.2;}
+.focuschip.on{border-color:var(--fairway);background:#EFF4ED;}
+.focustick{flex-shrink:0;width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line);background:var(--paper);
+  display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--chalk);}
+.focuschip.on .focustick{background:var(--fairway);border-color:var(--fairway);}
+.focusactive{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper);border-left:4px solid var(--flag);
+  border-radius:12px;padding:9px 12px;margin-bottom:9px;box-shadow:0 2px 8px rgba(0,0,0,.07);}
 .sessiontimer{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
 .sessionclock{font-size:26px;font-weight:600;line-height:1;display:inline-block;vertical-align:middle;}
 .timerstate{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-left:8px;vertical-align:middle;opacity:.55;}
@@ -622,19 +636,27 @@ function extraDrillBudget(profile){
   return Math.max(0, b + c);
 }
 function computePlan(dateStr, minutes, salt, excludeIds){
-  const {ranking, profile, favorites} = state;
+  const {profile, favorites} = state;
+  // "What do you want to work on today?" — if the golfer picked specific areas, the whole plan
+  // is built from just those, and all the session's time is split between them.
+  const focus = (state.focusAreas && state.focusAreas.length) ? state.focusAreas : null;
+  const ranking = focus ? state.ranking.filter(a=>focus.includes(a)) : state.ranking;
+  if(!ranking.length) return {date:dateStr, minutes, items:[], perfDrills:[], games:[], swingWork:null};
   const total = minutes;
   const n = ranking.length; const weights={}; let sumW=0;
   ranking.forEach((a,idx)=>{ const w=n-idx; weights[a]=w; sumW+=w; });
   const minutesPerArea={}; let allocated=0;
   ranking.forEach(a=>{ const m=Math.round(total*weights[a]/sumW); minutesPerArea[a]=m; allocated+=m; });
   minutesPerArea[ranking[0]] += (total-allocated);
-  const pref = profile.startOrder && profile.startOrder.length ? profile.startOrder : [profile.startArea];
+  const pref0 = profile.startOrder && profile.startOrder.length ? profile.startOrder : [profile.startArea];
+  const pref = focus ? pref0.filter(a=>focus.includes(a)) : pref0;
   const order = [...pref, ...ranking.filter(a=>!pref.includes(a))];
   const rand = mulberry32(hashStr(dateStr+'|'+(salt||'')));
   // Fewer time / "Fewer Drills" mode: shrink to 1 drill per area (min ~8-9 total with calibration).
   // Bunker can drop out entirely only if it's last in the golfer's practice order.
-  const reduced = !!state.reducedMode || total<=45;
+  // Auto-trim only when time is genuinely tight for the number of areas in play. 45 min across
+  // all 8 areas is tight; 45 min on driver alone is not, so a focused session isn't cut down.
+  const reduced = !!state.reducedMode || total <= Math.min(45, 6*ranking.length);
   const bunkerLast = order.length && order[order.length-1]==='bunker';
   // Every area starts at 1 drill. Extra drills are then handed out from a budget, always to
   // the areas the golfer needs MOST first (ranking order), so extra time thickens the top of
@@ -645,7 +667,14 @@ function computePlan(dateStr, minutes, salt, excludeIds){
   //    removes one.
   const spreadAreas = ranking.filter(a=> a!=='bunker' && a!=='mid_irons' && a!=='long_irons');
   const singleAreas = ranking.filter(a=> a==='bunker' || a==='mid_irons' || a==='long_irons');
-  const upgrades = spreadAreas.map(a=>[a,2]).concat(singleAreas.map(a=>[a,2])).concat(spreadAreas.map(a=>[a,3]));
+  // Upgrade ladder: give everything a 2nd drill, then bunker/irons theirs, then stack 3rd, 4th
+  // and 5th drills. The deep rungs only get reached when the session is focused on a couple of
+  // areas (or is very long), which is exactly when you want more drills in the same area.
+  const upgrades = spreadAreas.map(a=>[a,2])
+    .concat(singleAreas.map(a=>[a,2]))
+    .concat(spreadAreas.map(a=>[a,3])).concat(singleAreas.map(a=>[a,3]))
+    .concat(spreadAreas.map(a=>[a,4])).concat(singleAreas.map(a=>[a,4]))
+    .concat(spreadAreas.map(a=>[a,5])).concat(singleAreas.map(a=>[a,5]));
   const fullRef = profile.sessionLength || 105;
   const steps = Math.round((total - fullRef)/15);
   let budget = reduced ? 0 : Math.max(0, extraDrillBudget(profile) + steps);
@@ -860,6 +889,8 @@ function markPlanSeen(plan){
 }
 function ensureTodayPlan(){
   if(!state.planCache || state.planCache.date!==todayStr()){
+    // "work on today" is a one-day choice — a new day starts from the full plan again
+    if(state.focusAreas){ state.focusAreas = null; sSet('focus-areas', null); }
     state.planCache = computePlan(todayStr(), state.profile.sessionLength, '', seenIdsForToday());
     markPlanSeen(state.planCache);
     sSet('plan-cache', state.planCache);
@@ -878,6 +909,40 @@ async function toggleReducedMode(){
   markPlanSeen(state.planCache);
   await sSet('plan-cache', state.planCache);
   setToast(state.reducedMode?'Trimmed to fewer drills':'Back to your full plan'); render();
+}
+/* ---- "What do you want to work on today?" ---- */
+function toggleFocusPanel(){
+  // opening the panel starts from whatever is currently active
+  if(!state.focusPanelOpen){ state.focusDraft = new Set(state.focusAreas || []); }
+  state.focusPanelOpen = !state.focusPanelOpen;
+  render();
+}
+function toggleFocusArea(id){
+  if(!state.focusDraft) state.focusDraft = new Set();
+  if(state.focusDraft.has(id)) state.focusDraft.delete(id); else state.focusDraft.add(id);
+  render();
+}
+async function rebuildForFocus(msg){
+  state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), []);
+  markPlanSeen(state.planCache);
+  await sSet('plan-cache', state.planCache);
+  await sSet('focus-areas', state.focusAreas || null);
+  state.focusPanelOpen = false;
+  setToast(msg); render();
+}
+async function applyFocus(){
+  const picked = AREAS.map(a=>a.id).filter(id=>state.focusDraft && state.focusDraft.has(id));
+  if(!picked.length){ setToast('Pick at least one area'); return; }
+  // picking everything is the same as no filter at all
+  state.focusAreas = picked.length===AREAS.length ? null : picked;
+  await rebuildForFocus(state.focusAreas
+    ? 'Today is all '+picked.map(areaLabel).join(' & ')
+    : 'Back to your full plan');
+}
+async function clearFocus(){
+  state.focusAreas = null;
+  state.focusDraft = null;
+  await rebuildForFocus('Back to your full plan');
 }
 async function setDifficultyPref(pref){
   if(!state.profile || state.profile.difficultyPref===pref) return;
@@ -1197,7 +1262,7 @@ function renderToday(){
   const plan = state.planCache;
   const streak = computeStreak();
   const untimed = state.profile.sessionMode==='untimed';
-  const focusAreas = state.ranking.slice(0,3).map(areaLabel).join(' · ');
+  const focusAreas = (state.focusAreas && state.focusAreas.length ? state.focusAreas : state.ranking.slice(0,3)).map(areaLabel).join(' · ');
   const doneToday = plan.items.filter(it=>state.completions.some(c=>c.date===todayStr()&&c.drillId===it.drillId)).length;
 
   const planMins = plan.items.reduce((s,i)=>s+(i.minutes||0),0);
@@ -1239,6 +1304,28 @@ function renderToday(){
       ${timerRow}
     </div>`;
 
+  // "What do you want to work on today?" — pick areas and the whole plan rebuilds around them.
+  const focusOn = state.focusAreas && state.focusAreas.length;
+  const draft = state.focusDraft || new Set();
+  const focusCard = state.focusPanelOpen ? `
+    <div class="focuscard">
+      <div class="rowline"><strong style="font-size:13.5px">Work on today</strong><button class="linkbtn" style="font-size:12px" onclick="toggleFocusPanel()">Close</button></div>
+      <div class="focusgrid">
+        ${AREAS.map(a=>`<button class="focuschip ${draft.has(a.id)?'on':''}" onclick="toggleFocusArea('${a.id}')">
+          <span class="focustick">${draft.has(a.id)?'✓':''}</span>${AREA_SHORT[a.id]||a.label}</button>`).join('')}
+      </div>
+      <div class="adjustrow" style="margin-top:10px">
+        <button class="btn small" style="flex:1" onclick="applyFocus()">Build${draft.size?' ('+draft.size+')':''}</button>
+        <button class="btn small secondary" style="flex:1" onclick="clearFocus()">Everything</button>
+      </div>
+    </div>`
+    : (focusOn
+      ? `<div class="focusactive">
+           <span style="font-size:12.5px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🎯 ${state.focusAreas.map(a=>AREA_SHORT[a]||areaLabel(a)).join(' · ')}</span>
+           <div style="display:flex;gap:6px;flex-shrink:0"><button class="linkbtn" style="font-size:12px;color:var(--fairway)" onclick="toggleFocusPanel()">Change</button><button class="linkbtn" style="font-size:12px;color:var(--fairway)" onclick="clearFocus()">Reset</button></div>
+         </div>`
+      : `<button class="focusbtn" onclick="toggleFocusPanel()">🎯 Only want to work on certain areas?</button>`);
+
   const dpref = state.profile.difficultyPref || 'normal';
   // Always-visible controls: how hard the targets are, and swapping / regenerating drills.
   const controlBar = `
@@ -1276,7 +1363,7 @@ function renderToday(){
       <h2 class="sectionhead">Your practice plan</h2>
       <p class="sectionsub">Broken into blocks with a time budget for each. Work down in order — tap a drill for setup instructions, then tap the circle to check it off.</p>
     </div>
-    ${controlBar}${adjustPanel}`;
+    ${focusCard}${controlBar}${adjustPanel}`;
 
   // Group today's drills by area so the session reads as blocks with their own time budget.
   const groups = [];
@@ -1852,6 +1939,7 @@ async function init(){
   state.completions=act.completions||[]; state.favorites=act.favorites||[]; state.customDrills=act.customDrills||[]; state.swingWork=act.swingWork||[];
   state.planCache=plan;
   state.seenToday = await sGet('seen-today', null);
+  state.focusAreas = await sGet('focus-areas', null);
   state.view = state.profile ? 'today' : 'onboarding';
   render();
   hideSplash();
