@@ -813,7 +813,7 @@ function closeDrill(){ stopTimer(true); state.detailDrillId=null; state.view=sta
 function startTimer(){ state.timer={start:Date.now(), elapsed:0}; timerInterval=setInterval(()=>{ if(state.timer){ state.timer.elapsed=Math.floor((Date.now()-state.timer.start)/1000); const el=document.getElementById('timer_display'); if(el) el.textContent=fmtTime(state.timer.elapsed); } },1000); render(); }
 function stopTimer(silent){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } if(!silent) render(); }
 function fmtTime(s){ const m=Math.floor(s/60), sec=s%60; return m+':'+String(sec).padStart(2,'0'); }
-async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); setToast('Logged '+fmtTime(secs)); if(state.detailFrom==='today' && nextDrillId()) goNextDrill(); else closeDrill(); }
+async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); if(state.detailFrom==='today' && nextDrillId()) goNextDrill(); else closeDrill(); }
 /* next-drill navigation within today's plan */
 function todayDrillSequence(){ const p=state.planCache; if(!p) return []; return (p.items||[]).map(i=>i.drillId).concat((p.perfDrills||[]).map(i=>i.drillId)); }
 function nextDrillId(){ const seq=todayDrillSequence(); const i=seq.indexOf(state.detailDrillId); return (i<0)?null:(seq[i+1]||null); }
@@ -825,16 +825,12 @@ async function goNextDrill(){
     // the drill's own timer was running — log exactly what it read
     const secs=state.timer.elapsed, mins=Math.max(1,Math.round(secs/60));
     stopTimer(true); state.timer=null;
-    if(!alreadyDone){ await toggleComplete(cur, mins, secs); setToast('Logged '+fmtTime(secs)); }
+    if(!alreadyDone) await toggleComplete(cur, mins, secs);
   } else {
     stopTimer(true); state.timer=null;
     // came in from Start Practice, so only the session stopwatch is running — tick the drill
     // off anyway and let it take its time from the gap since the last check-off.
-    if(!alreadyDone){
-      await toggleComplete(cur);
-      const c = state.completions.find(x=>x.date===todayStr() && x.drillId===cur);
-      setToast(c && c.tookSeconds!=null ? 'Done — took '+fmtTime(c.tookSeconds) : 'Checked off');
-    }
+    if(!alreadyDone) await toggleComplete(cur);
   }
   const n=nextDrillId();
   if(n) openDrill(n,'today'); else { setToast("That's the last one — nice work!"); closeDrill(); }
@@ -872,7 +868,7 @@ async function addGameToToday(id){ ensureTodayPlan(); const g=findGame(id); if(!
 async function removeGameFromToday(id){ if(!state.planCache) return; state.planCache.games=(state.planCache.games||[]).filter(x=>x!==id); await sSet('plan-cache', state.planCache); render(); }
 async function finishGameTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null;
   const g=findGame(state.detailGameId); state.completions.push({date:todayStr(), drillId:state.detailGameId, minutes:mins, seconds:secs, logged:true, isGame:true, gameName:g?g.name:''});
-  await persistActivity(); setToast('Logged '+fmtTime(secs)); closeGame();
+  await persistActivity(); closeGame();
 }
 /* add drills to today's plan */
 function toggleAddDrill(){ state.addDrillOpen=!state.addDrillOpen; render(); }
