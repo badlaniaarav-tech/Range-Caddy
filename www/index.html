@@ -24,7 +24,7 @@ html,body{margin:0;}
 body{background:#EDEAE0;font-family:'Inter',sans-serif;color:var(--ink);}
 body::before{content:'';position:fixed;inset:0;z-index:-1;background:#EDEAE0 url('background.png') center/cover no-repeat;}
 #app{max-width:480px;margin:0 auto;min-height:100vh;background:transparent;display:flex;flex-direction:column;}
-#content{flex:1;padding:calc(env(safe-area-inset-top, 0px) + 32px) 18px 26px;overflow-y:auto;}
+#content{flex:1;padding:calc(env(safe-area-inset-top, 0px) + 32px) 18px calc(env(safe-area-inset-bottom, 0px) + 104px);overflow-y:auto;}
 .navbar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 14px 20px;background:transparent;}
 .navpill{display:flex;align-items:center;gap:2px;background:var(--ink);border-radius:999px;padding:6px;box-shadow:0 10px 28px rgba(0,0,0,.35);}
 .navbtn{background:none;border:none;cursor:pointer;padding:11px 17px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);}
