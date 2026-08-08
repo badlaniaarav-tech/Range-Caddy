@@ -142,6 +142,14 @@ p{margin:0 0 8px;line-height:1.45;}
 .focustick{flex-shrink:0;width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line);background:var(--paper);
   display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--chalk);}
 .focuschip.on .focustick{background:var(--fairway);border-color:var(--fairway);}
+.pttotal{display:flex;align-items:center;justify-content:space-between;background:var(--chalk);border-radius:10px;padding:8px 11px;margin:9px 0 4px;font-size:13px;font-weight:800;}
+.ptsection{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--fairway);margin:12px 0 2px;}
+.ptrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);}
+.ptname{font-size:13px;min-width:0;}
+.addrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+.addname{font-size:13px;font-weight:700;line-height:1.25;}
+.adddesc{font-size:11.5px;opacity:.7;line-height:1.35;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.focuschip[disabled]{cursor:default;}
 .focusactive{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--paper);border-left:4px solid var(--flag);
   border-radius:12px;padding:9px 12px;margin-bottom:9px;box-shadow:0 2px 8px rgba(0,0,0,.07);}
 .sessiontimer{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
@@ -334,7 +342,7 @@ const DRILLS = [
 {id:'d9',area:'driver_woods',name:'Tee Height Ladder',description:'Find your best launch window by seeing how tee height changes flight and spin.',setup:'Hit balls teed low, medium and high in turn.',repsOrTime:'5-6 drives per tee height',success:'Notice which height gives the most carry and tightest dispersion, then make it your standard',difficulty:'Intermediate'},
 {id:'li5',area:'long_irons',name:'Punch Flight',description:'Take height off your long irons to control trajectory and hold the wind.',setup:'One long iron, ball back in your stance, shorter follow-through.',repsOrTime:'10 balls',success:'A consistently lower, more penetrating flight than your stock long iron',difficulty:'Advanced'},
 {id:'si7',area:'short_irons',name:'Nine Windows',description:'Prove you can flight and shape the ball in every direction on command.',setup:'One short iron, one target.',repsOrTime:'9 balls — each a different combo of low/mid/high and draw/straight/fade',success:'Hit all nine windows, each clearly different in height and curve',difficulty:'Advanced'},
-{id:'si8',area:'short_irons',name:'Random Number Ladder',description:'Train on-course adaptability by never hitting the same yardage twice.',setup:'Pick a club and a way to call out random yardages within its range (a partner or an app).',repsOrTime:'10 balls, a new called yardage each time',success:'Land close to each called number with no warm-up rep',difficulty:'Intermediate'},
+{id:'si8',area:'wedges_pitching',name:'Random Number Ladder',description:'Train on-course adaptability by never hitting the same yardage twice.',setup:'Pick a club and a way to call out random yardages within its range (a partner or an app).',repsOrTime:'10 balls, a new called yardage each time',success:'Land close to each called number with no warm-up rep',difficulty:'Intermediate'},
 {id:'mi10',area:'mid_irons',name:'Alignment Gate',description:'Groove a repeatable start line so every ball begins on your intended path.',setup:'Stand two alignment sticks a few feet ahead of the ball, just wider than the ball, framing your start line.',repsOrTime:'10 balls',success:'Start every ball cleanly through the gate',difficulty:'Beginner'},
 {id:'c16',area:'chipping',name:'Five-Club Up & Down',description:'Build greenside creativity by getting up and down with five different clubs.',setup:'Pick a greenside spot and grab five different clubs (e.g. LW, SW, GW, PW, 8-iron).',repsOrTime:'5 up-and-down attempts, one with each club',success:'Get up and down with all five, learning which club fits which situation',difficulty:'Advanced'},
 {id:'c17',area:'chipping',name:'One-Club Up & Down',description:'Sharpen touch and shot-making by using a single wedge for everything.',setup:'Pick one wedge and a spot off the green with a hole to aim at.',repsOrTime:'A full session, every greenside shot with the same club',success:'Get up and down consistently using only feel and technique to vary the shots',difficulty:'Intermediate'},
@@ -634,6 +642,8 @@ function extraDrillBudget(profile){
   const c = {casual:-1, regular:0, serious:1, competitive:2}[profile.commitment||'regular'] || 0;
   return Math.max(0, b + c);
 }
+/* Tempo work warms you up, so it goes first in whichever club section it lands in. */
+function isTempoDrill(d){ return !!d && /tempo/i.test(d.name||''); }
 function computePlan(dateStr, minutes, salt, excludeIds){
   const {profile, favorites} = state;
   // "What do you want to work on today?" — if the golfer picked specific areas, the whole plan
@@ -690,7 +700,9 @@ function computePlan(dateStr, minutes, salt, excludeIds){
     const favs = pool.filter(d=>favorites.includes(d.id));
     const rest = pool.filter(d=>!favorites.includes(d.id)).sort(()=>rand()-0.5);
     let numDrills = Math.min(counts[areaId] || 1, pool.length);
-    const chosen = [...favs, ...rest].slice(0,numDrills);
+    let chosen = [...favs, ...rest].slice(0,numDrills);
+    // A tempo drill is a warm-up for the rest of the block, so it always leads its section.
+    chosen = chosen.slice().sort((a,b)=> (isTempoDrill(b)?1:0) - (isTempoDrill(a)?1:0));
     if(areaId==='putting') items.push({key:'calib_putting',area:'putting',drillId:'putt_calibration',minutes:10,fixed:true});
     const perDrillMin = Math.max(5, Math.round((m||numDrills*8)/numDrills));
     chosen.forEach(d=> items.push({key:areaId+'_'+d.id, area:areaId, drillId:d.id, minutes:perDrillMin, fixed:false}));
@@ -902,6 +914,26 @@ async function regenerateToday(){
   await sSet('plan-cache', state.planCache); render();
 }
 async function regenTodayWithMinutes(){ state.planCache = computePlan(todayStr(), state.todayMinutes, state.planCache?state.planCache.salt:''); await sSet('plan-cache', state.planCache); render(); }
+/* Adds drills to today without asking which — most-needed areas first. */
+async function addMoreDrills(){
+  ensureTodayPlan();
+  const plan = state.planCache;
+  const inPlan = new Set(plan.items.map(i=>i.drillId));
+  const order = (state.focusAreas && state.focusAreas.length) ? state.focusAreas : state.ranking;
+  let added = 0;
+  for(const areaId of order){
+    const pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed && !d.performance && !inPlan.has(d.id)), state.profile);
+    if(!pool.length) continue;
+    const pick = pool[Math.floor(Math.random()*pool.length)];
+    plan.items.push({key:'added_'+pick.id+'_'+Date.now()+'_'+added, area:areaId, drillId:pick.id, minutes:10, fixed:false});
+    inPlan.add(pick.id); added++;
+    if(added>=2) break;
+  }
+  if(!added){ setToast('No more drills left to add'); return; }
+  state.reducedMode = false;
+  await sSet('plan-cache', plan);
+  setToast('Added '+added+' more drill'+(added===1?'':'s')); render();
+}
 async function toggleReducedMode(){
   state.reducedMode = !state.reducedMode;
   state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), seenIdsForToday());
@@ -922,7 +954,12 @@ function toggleFocusArea(id){
   render();
 }
 async function rebuildForFocus(msg){
+  // Anything already ticked off today stays in the plan — you've done the work, it shouldn't vanish.
+  const keep = (state.planCache && state.planCache.items || []).filter(i=>
+    state.completions.some(c=>c.date===todayStr() && c.drillId===i.drillId));
   state.planCache = computePlan(todayStr(), state.todayMinutes||state.profile.sessionLength, String(Date.now()), []);
+  const have = new Set(state.planCache.items.map(i=>i.drillId));
+  state.planCache.items = keep.filter(i=>!have.has(i.drillId)).concat(state.planCache.items);
   markPlanSeen(state.planCache);
   await sSet('plan-cache', state.planCache);
   await sSet('focus-areas', state.focusAreas || null);
@@ -1297,7 +1334,8 @@ function renderToday(){
         <div class="timeval"><div class="timenum">${plan.minutes} MIN</div><div class="timelbl">How long I have today</div></div>
         <button class="stepbtn" onclick="adjustMinutes(15)">+</button>
       </div>
-      <p class="muted" style="font-size:12px;text-align:center;margin:9px 0 0">${planMins>plan.minutes
+      <div style="text-align:center;margin-top:7px"><button class="linkbtn" style="font-size:12px;color:var(--fairway)" onclick="toggleSessionMode()">⏱ Switch to untimed — no clock, just hit the target</button></div>
+      <p class="muted" style="font-size:12px;text-align:center;margin:7px 0 0">${planMins>plan.minutes
         ? `This plan can't go below <strong>${planMins} min</strong> — every drill needs at least 5.`
         : 'Fewer minutes = fewer drills. We always keep what you need most.'}</p>
       ${timerRow}
@@ -1349,7 +1387,10 @@ function renderToday(){
       <div class="rowline"><strong style="font-size:15px">More options</strong><button class="linkbtn" onclick="toggleAdjust()">Done</button></div>
       <div class="adjustlbl" style="margin-top:12px">Session size</div>
       <div class="adjustrow">
+        <button class="btn secondary" onclick="addMoreDrills()">Give me more drills</button>
         <button class="btn secondary" onclick="toggleReducedMode()">${state.reducedMode?'Back to full plan':'Give me fewer drills'}</button>
+      </div>
+      <div class="adjustrow" style="margin-top:8px">
         <button class="btn secondary" onclick="setCustomMinutesPrompt()">Set exact minutes</button>
       </div>
       <div class="adjustlbl">Prefer to choose yourself?</div>
@@ -1413,15 +1454,24 @@ function renderToday(){
   }).join('') || '<div class="empty">No drills scheduled — try adding more time above.</div>';
 
   // add-drill panel
-  const addPool = allDrills().filter(d=>!d.fixed && !plan.items.some(i=>i.drillId===d.id) && (state.addDrillArea==='all'||d.area===state.addDrillArea));
+  // Add-a-drill: choose the part of your game first, then see a short list — not all 124 at once.
+  const addArea = state.addDrillArea && state.addDrillArea!=='all' ? state.addDrillArea : null;
+  const addPool = addArea
+    ? allDrills().filter(d=>!d.fixed && !d.performance && d.area===addArea && !plan.items.some(i=>i.drillId===d.id)).slice(0,8)
+    : [];
   const addPanel = state.addDrillOpen ? `
-    <div class="card">
-      <div class="rowline"><strong>Add a drill to today</strong><button class="linkbtn" onclick="toggleAddDrill()">Close</button></div>
-      <select onchange="setAddDrillArea(this.value)" style="margin:8px 0">
-        <option value="all">All areas</option>${AREAS.map(a=>`<option value="${a.id}" ${state.addDrillArea===a.id?'selected':''}>${a.label}</option>`).join('')}
-      </select>
-      ${addPool.map(d=>`<div class="rowline" style="padding:7px 0;border-top:1px solid var(--line)"><span style="font-size:13px">${escapeHtml(d.name)} <span class="muted">· ${AREA_SHORT[d.area]}</span></span><button class="btn small" onclick="addDrillToPlan('${d.id}')">Add</button></div>`).join('') || '<p class="muted">Nothing left to add in this area.</p>'}
-    </div>` : `<button class="btn secondary" onclick="toggleAddDrill()">+ Add More Drills</button>`;
+    <div class="focuscard">
+      <div class="rowline"><strong style="font-size:13.5px">${addArea?'Add a '+areaLabel(addArea).toLowerCase()+' drill':'Add a drill — pick an area'}</strong><button class="linkbtn" style="font-size:12px" onclick="${addArea?"setAddDrillArea('all')":'toggleAddDrill()'}">${addArea?'‹ Back':'Close'}</button></div>
+      ${!addArea ? `<div class="focusgrid">${AREAS.map(a=>{
+            const n = allDrills().filter(d=>!d.fixed && !d.performance && d.area===a.id && !plan.items.some(i=>i.drillId===d.id)).length;
+            return `<button class="focuschip" ${n?'':'disabled style="opacity:.4"'} onclick="setAddDrillArea('${a.id}')">${AREA_SHORT[a.id]||a.label} <span class="muted" style="font-size:11px">${n}</span></button>`;
+          }).join('')}</div>`
+        : (addPool.length ? addPool.map(d=>`<div class="addrow">
+             <div style="min-width:0"><div class="addname">${escapeHtml(d.name)}</div><div class="adddesc">${escapeHtml(d.description)}</div></div>
+             <button class="btn small" style="flex-shrink:0" onclick="addDrillToPlan('${d.id}')">Add</button></div>`).join('')
+           : '<p class="muted" style="font-size:12.5px;margin-top:10px">Nothing left to add here.</p>')}
+    </div>` : `<button class="focusbtn" onclick="toggleAddDrill()">＋ Add another drill</button>`;
+
 
   // performance & games section
   const gamesHeader = `
@@ -1755,7 +1805,7 @@ function renderDrillDetail(){
   <p class="muted" style="font-size:14px;line-height:1.5;margin-top:6px">${escapeHtml(d.description)}</p>
   ${inPlan ? `<div class="detailflag">✓ This is in today's plan</div>` : `<button class="btn bigbtn" style="margin-top:12px" onclick="addDrillToToday('${d.id}')">+ Add to today's plan</button>`}
   <div class="stepcard"><div class="stepcardlbl">① Set it up</div>${listOrText(setupSteps)}</div>
-  <div class="stepcard"><div class="stepcardlbl">② Work through it</div>${listOrText(doSteps)}${targetTweak()}</div>
+  <div class="stepcard"><div class="stepcardlbl">② Work through it</div>${listOrText(doSteps)}${targetTweak()}${/\d/.test(d.repsOrTime||'')?'<div class="muted" style="font-size:12px;margin-top:8px">…or keep going past that until you can do it consistently.</div>':''}</div>
   <div class="stepcard" style="border-left-color:var(--flag)"><div class="stepcardlbl">③ You've passed when</div>${listOrText(passSteps)}<div class="muted" style="font-size:12px;margin-top:9px">Difficulty: ${d.difficulty}</div></div>
   <button class="adjustbtn" style="margin-top:4px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'❓'} ${explainOpen?'Hide explanation':"Still not sure? Explain this drill"}</button>
   ${explainOpen?`
@@ -1820,18 +1870,36 @@ function renderGameDetail(){
 function renderPracticeTime(){
   const byDate={}; state.completions.forEach((c,i)=>{ (byDate[c.date]=byDate[c.date]||[]).push({c,i}); });
   const dates = Object.keys(byDate).sort().reverse();
+  const entryRow = ({c,i})=>{
+    const label = c.sessionLog?'Full session (timer)': c.isGame?(c.gameName||'Game') : (allDrills().find(x=>x.id===c.drillId)?.name || c.drillId);
+    const dur = c.seconds!=null ? fmtTime(c.seconds) : (c.minutes!=null ? c.minutes+'m' : (c.tookSeconds!=null ? 'took '+fmtTime(c.tookSeconds) : 'done'));
+    return `<div class="ptrow">
+      <span class="ptname">${escapeHtml(label)} <span class="muted">— ${dur}</span></span>
+      <span style="display:flex;gap:6px;flex-shrink:0"><button class="linkbtn" style="font-size:12px" onclick="editCompletionTime(${i})">Edit</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeCompletionEntry(${i})">✕</button></span>
+    </div>`;
+  };
   const rows = dates.map(date=>{
-    const entries = byDate[date].map(({c,i})=>{
-      let label = c.sessionLog?'Full session (timer)': c.isGame?(c.gameName||'Game')+' (game)' : (allDrills().find(x=>x.id===c.drillId)?.name || c.drillId);
-      const dur = c.seconds!=null ? fmtTime(c.seconds) : (c.minutes!=null ? c.minutes+'m' : (c.tookSeconds!=null ? 'took '+fmtTime(c.tookSeconds) : 'done'));
-      return `<div class="rowline" style="padding:6px 0;border-top:1px solid var(--line)">
-        <span style="font-size:13px">${escapeHtml(label)} <span class="muted">— ${dur}</span></span>
-        <div style="display:flex;gap:6px"><button class="linkbtn" style="font-size:12px" onclick="editCompletionTime(${i})">Edit</button><button class="linkbtn" style="font-size:12px;color:var(--danger)" onclick="removeCompletionEntry(${i})">✕</button></div>
-      </div>`;
+    const list = byDate[date];
+    const dayMin = list.reduce((s,{c})=>s+(c.minutes||0),0);
+    // the whole-session stopwatch total goes at the top of the day
+    const sessionRows = list.filter(({c})=>c.sessionLog);
+    const games = list.filter(({c})=>c.isGame);
+    const drills = list.filter(({c})=>!c.sessionLog && !c.isGame);
+    // group the drills by part of the game
+    const byArea={};
+    drills.forEach(o=>{ const d=allDrills().find(x=>x.id===o.c.drillId); const k=d?d.area:'other'; (byArea[k]=byArea[k]||[]).push(o); });
+    const areaOrder = AREAS.map(a=>a.id).filter(a=>byArea[a]).concat(byArea.other?['other']:[]);
+    const sections = areaOrder.map(areaId=>{
+      const mins = byArea[areaId].reduce((s,{c})=>s+(c.minutes||0),0);
+      return `<div class="ptsection"><span>${areaId==='other'?'Other':areaLabel(areaId)}</span><span class="muted">${mins?mins+' min':''}</span></div>`
+        + byArea[areaId].map(entryRow).join('');
     }).join('');
-    return `<div class="card"><strong>${date}</strong>${entries}</div>`;
+    const gameBlock = games.length ? `<div class="ptsection"><span>Games &amp; tests</span><span></span></div>`+games.map(entryRow).join('') : '';
+    const totalBanner = `<div class="pttotal"><span>Total time</span><span class="num">${dayMin} min</span></div>`
+      + sessionRows.map(entryRow).join('');
+    return `<div class="card"><strong>${prettyDate(date)}</strong>${totalBanner}${sections}${gameBlock}</div>`;
   }).join('') || '<div class="empty">No practice logged yet.</div>';
-  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Practice Time</h1><p class="muted">Total: ${totalPracticeMinutes()}. Edit or remove any entry to correct logged time.</p>${rows}`;
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Practice Time</h1><p class="muted">Total: ${totalPracticeMinutes()}. Each day shows your total first, then what you did in each part of the game.</p>${rows}`;
 }
 
 function renderSwingWork(){
@@ -1872,32 +1940,104 @@ function renderReview(){
   ${state.suggestionsLoading?'<div class="empty">Loading…</div>':rows}`;
 }
 
+/* The coach message. Defaults to today only; the golfer can tick extra days to include.
+   Laid out as clear sections per day, grouped by part of the game. */
+function exportDates(){
+  const all = [...new Set(state.completions.map(c=>c.date))].sort().reverse();
+  if(state.exportDates && state.exportDates.size) return all.filter(d=>state.exportDates.has(d));
+  return all.filter(d=>d===todayStr());
+}
 function buildExportText(){
-  const totalMin = state.completions.reduce((s,c)=>s+(c.minutes||0),0);
-  const h = Math.floor(totalMin/60), m = totalMin%60, totalStr = h?`${h}h ${m}m`:`${m}m`;
-  const lines = [`⛳ ${state.profile.displayName}'s Range Caddy Log`, `📅 ${todayStr()}   🔥 ${computeStreak()}-day streak`, `${state.completions.length} drills logged · ${totalStr} total`, '', '🎯 Focus areas (most work needed first)'];
-  state.ranking.slice(0,3).forEach((a,i)=>lines.push(`${i+1}. ${areaLabel(a)}`));
-  lines.push('', '📋 Sessions (most recent first)');
-  const byDate = {};
-  [...state.completions].reverse().forEach(c=>{ (byDate[c.date] = byDate[c.date]||[]).push(c); });
-  Object.keys(byDate).forEach(date=>{
-    let dayTotal=0; const rows=[];
-    byDate[date].forEach(c=>{ const d=allDrills().find(x=>x.id===c.drillId); const mins=c.minutes!=null?c.minutes:0; dayTotal+=mins;
-      let label;
-      if(c.sessionLog) label='Full session (timer)';
-      else if(c.isGame) label=(c.gameName||'Game')+' (game)';
-      else label=d?d.name+' ('+areaLabel(d.area)+')':c.drillId;
-      rows.push(`   • ${label} — ${c.minutes!=null?c.minutes+' min'+(c.logged?' (timed)':''):(c.tookSeconds!=null?'took '+fmtTime(c.tookSeconds):'done')}`); });
-    lines.push(`${date} — ${dayTotal} min`); lines.push(...rows);
+  const dates = exportDates();
+  const L = [];
+  L.push('⛳ ' + state.profile.displayName + ' — Range Caddy');
+  L.push('🔥 ' + computeStreak() + '-day streak');
+  L.push('');
+  if(!dates.length){ L.push('No practice logged for the selected day(s).'); return L.join('\n'); }
+
+  dates.forEach((date, di)=>{
+    const rows = state.completions.filter(c=>c.date===date);
+    const mins = rows.reduce((s,c)=>s+(c.minutes||0),0);
+    if(di) L.push('');
+    L.push('━━━━━━━━━━━━━━━');
+    L.push('📅 ' + prettyDate(date));
+    L.push(mins + ' min · ' + rows.filter(r=>!r.sessionLog).length + ' completed');
+    L.push('');
+
+    // drills grouped by part of the game
+    const byArea = {};
+    rows.forEach(c=>{
+      if(c.sessionLog || c.isGame) return;
+      const d = allDrills().find(x=>x.id===c.drillId);
+      const k = d ? d.area : 'other';
+      (byArea[k] = byArea[k] || []).push({c, d});
+    });
+    const order = AREAS.map(a=>a.id).filter(a=>byArea[a]);
+    order.forEach(areaId=>{
+      L.push(areaLabel(areaId).toUpperCase());
+      byArea[areaId].forEach(({c,d})=>{
+        L.push('  • ' + (d ? d.name : c.drillId) + durSuffix(c));
+      });
+      L.push('');
+    });
+
+    const games = rows.filter(c=>c.isGame);
+    if(games.length){
+      L.push('GAMES & TESTS');
+      games.forEach(c=>L.push('  • ' + (c.gameName||'Game') + durSuffix(c)));
+      L.push('');
+    }
+    const sess = rows.filter(c=>c.sessionLog);
+    if(sess.length) { sess.forEach(c=>L.push('⏱ Session timer: ' + (c.minutes||0) + ' min')); L.push(''); }
   });
-  if(!state.completions.length) lines.push('(nothing logged yet)');
-  if(state.swingWork.length){ lines.push('', '🏌️ Full-swing focus notes'); state.swingWork.forEach(s=>lines.push('   • '+s.name+(s.description?': '+s.description:''))); }
-  return lines.join('\n');
+
+  L.push('━━━━━━━━━━━━━━━');
+  L.push('🎯 WORKING ON');
+  state.ranking.slice(0,3).forEach((a,i)=>L.push('  ' + (i+1) + '. ' + areaLabel(a)));
+  if(state.swingWork.length){
+    L.push('');
+    L.push('🏌️ SWING NOTES');
+    state.swingWork.forEach(s=>L.push('  • ' + s.name + (s.description ? ': ' + s.description : '')));
+  }
+  return L.join('\n');
+}
+function durSuffix(c){
+  if(c.seconds!=null) return ' — ' + fmtTime(c.seconds);
+  if(c.minutes!=null) return ' — ' + c.minutes + ' min';
+  if(c.tookSeconds!=null) return ' — took ' + fmtTime(c.tookSeconds);
+  return ' ✓';
+}
+function prettyDate(d){
+  const p = String(d).split('-');
+  const dt = new Date(+p[0], +p[1]-1, +p[2]);
+  return isNaN(dt) ? d : dt.toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+}
+function shortDate(d){
+  const p=String(d).split('-'); const dt=new Date(+p[0],+p[1]-1,+p[2]);
+  return isNaN(dt)? d : dt.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+}
+function toggleExportDate(date){
+  if(!state.exportDates) state.exportDates = new Set(exportDates());
+  if(state.exportDates.has(date)) state.exportDates.delete(date); else state.exportDates.add(date);
+  if(!state.exportDates.size) state.exportDates = null;   // back to today-only
+  render();
 }
 function renderExportLog(){
   const text = buildExportText();
-  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Export Log</h1><p class="muted">Everything you've practiced, with time spent. Send it to your coach or copy it.</p>
-  <textarea id="export_text" readonly style="width:100%;min-height:300px;font-family:'JetBrains Mono',monospace;font-size:12px">${escapeHtml(text)}</textarea>
+  const all = [...new Set(state.completions.map(c=>c.date))].sort().reverse().slice(0,21);
+  const picked = new Set(exportDates());
+  const chips = all.map(d=>{
+    const n = state.completions.filter(c=>c.date===d && !c.sessionLog).length;
+    return `<button class="focuschip ${picked.has(d)?'on':''}" onclick="toggleExportDate('${d}')">
+      <span class="focustick">${picked.has(d)?'✓':''}</span>${shortDate(d)} <span class="muted" style="font-size:11px">${n}</span></button>`;
+  }).join('') || '<p class="muted" style="font-size:12.5px">Nothing logged yet.</p>';
+  return `<button class="linkback" onclick="switchView('profile')">‹ Profile</button><h1>Send to Coach</h1>
+  <p class="muted">Today's session is included by default. Tick any other days you want to send in the same message.</p>
+  <div class="focuscard" style="margin-top:12px">
+    <div class="rowline"><strong style="font-size:13.5px">Days to include</strong><span class="muted" style="font-size:12px">${picked.size} selected</span></div>
+    <div class="focusgrid" style="grid-template-columns:1fr 1fr">${chips}</div>
+  </div>
+  <textarea id="export_text" readonly style="width:100%;min-height:280px;font-family:'JetBrains Mono',monospace;font-size:12px">${escapeHtml(text)}</textarea>
   <button class="btn" style="margin-top:10px" onclick="textToCoach()">Text to My Coach</button>
   <button class="btn secondary" style="margin-top:8px" onclick="copyExportLog()">Copy to Clipboard</button>`;
 }
