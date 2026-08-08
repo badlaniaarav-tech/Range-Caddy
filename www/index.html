@@ -818,7 +818,27 @@ async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0;
 function todayDrillSequence(){ const p=state.planCache; if(!p) return []; return (p.items||[]).map(i=>i.drillId).concat((p.perfDrills||[]).map(i=>i.drillId)); }
 function nextDrillId(){ const seq=todayDrillSequence(); const i=seq.indexOf(state.detailDrillId); return (i<0)?null:(seq[i+1]||null); }
 function prevDrillId(){ const seq=todayDrillSequence(); const i=seq.indexOf(state.detailDrillId); return (i<=0)?null:seq[i-1]; }
-function goNextDrill(){ stopTimer(true); state.timer=null; const n=nextDrillId(); if(n) openDrill(n,'today'); else { setToast("That's the last one — nice work!"); closeDrill(); } }
+async function goNextDrill(){
+  const cur = state.detailDrillId;
+  const alreadyDone = state.completions.some(c=>c.date===todayStr() && c.drillId===cur);
+  if(state.timer){
+    // the drill's own timer was running — log exactly what it read
+    const secs=state.timer.elapsed, mins=Math.max(1,Math.round(secs/60));
+    stopTimer(true); state.timer=null;
+    if(!alreadyDone){ await toggleComplete(cur, mins, secs); setToast('Logged '+fmtTime(secs)); }
+  } else {
+    stopTimer(true); state.timer=null;
+    // came in from Start Practice, so only the session stopwatch is running — tick the drill
+    // off anyway and let it take its time from the gap since the last check-off.
+    if(!alreadyDone){
+      await toggleComplete(cur);
+      const c = state.completions.find(x=>x.date===todayStr() && x.drillId===cur);
+      setToast(c && c.tookSeconds!=null ? 'Done — took '+fmtTime(c.tookSeconds) : 'Checked off');
+    }
+  }
+  const n=nextDrillId();
+  if(n) openDrill(n,'today'); else { setToast("That's the last one — nice work!"); closeDrill(); }
+}
 function goPrevDrill(){ stopTimer(true); state.timer=null; const p=prevDrillId(); if(p) openDrill(p,'today'); }
 /* session-level timer (whole practice) */
 function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0; const lastMark=(prev&&prev.lastMark!=null)?prev.lastMark:0;
@@ -964,16 +984,14 @@ async function rebuildForFocus(msg){
   await sSet('plan-cache', state.planCache);
   await sSet('focus-areas', state.focusAreas || null);
   state.focusPanelOpen = false;
-  setToast(msg); render();
+  if(msg) setToast(msg); else render();
 }
 async function applyFocus(){
   const picked = AREAS.map(a=>a.id).filter(id=>state.focusDraft && state.focusDraft.has(id));
   if(!picked.length){ setToast('Pick at least one area'); return; }
   // picking everything is the same as no filter at all
   state.focusAreas = picked.length===AREAS.length ? null : picked;
-  await rebuildForFocus(state.focusAreas
-    ? 'Today is all '+picked.map(areaLabel).join(' & ')
-    : 'Back to your full plan');
+  await rebuildForFocus(state.focusAreas ? null : 'Back to your full plan');
 }
 async function clearFocus(){
   state.focusAreas = null;
