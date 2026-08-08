@@ -107,7 +107,7 @@ p{margin:0 0 8px;line-height:1.45;}
 .areaicon{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;background:var(--chalk);border-radius:50%;font-size:16px;}
 .areaname{font-size:16px;font-weight:800;line-height:1.2;}
 .areameta{font-size:11.5px;font-weight:600;opacity:.85;margin-top:2px;}
-.areaprog{flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;background:rgba(255,255,255,.16);border-radius:9px;padding:4px 10px;}
+.areaprog{flex-shrink:0;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;background:rgba(255,255,255,.16);border-radius:9px;padding:4px 10px;}
 .areaprog.done{background:var(--flag);color:var(--ink);}
 .drillcard.ingroup{margin-left:10px;}
 .drillcard{background:var(--paper);border-radius:18px;padding:15px 16px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.08);display:flex;gap:13px;align-items:flex-start;position:relative;}
@@ -146,6 +146,8 @@ p{margin:0 0 8px;line-height:1.45;}
 .ptsection{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--fairway);margin:12px 0 2px;}
 .ptrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);}
 .ptname{font-size:13px;min-width:0;}
+.cardacts{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:9px;}
+.cardact{font-size:12px;}
 .addrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
 .addname{font-size:13px;font-weight:700;line-height:1.25;}
 .adddesc{font-size:11.5px;opacity:.7;line-height:1.35;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -754,16 +756,43 @@ function computeStreak(){
 /* ---------- actions ---------- */
 function setToast(msg){ state.toast=msg; render(); setTimeout(()=>{ state.toast=null; const t=document.getElementById('toast'); if(t) t.remove(); }, 1800); }
 function plannedMinutesFor(drillId){ if(!state.planCache) return null; const it=state.planCache.items.find(i=>i.drillId===drillId); return it?it.minutes:null; }
+/* Tick a whole block off at once — handy in an untimed session where you work an area
+   until it's done rather than drill by drill. */
+async function toggleSection(areaId){
+  ensureTodayPlan();
+  const items = (state.planCache.items||[]).filter(i=>i.area===areaId);
+  if(!items.length) return;
+  const t = todayStr();
+  const allDone = items.every(i=>state.completions.some(c=>c.date===t && c.drillId===i.drillId));
+  for(const i of items){
+    const done = state.completions.some(c=>c.date===t && c.drillId===i.drillId);
+    if(allDone ? done : !done) await toggleComplete(i.drillId);
+  }
+  render();
+}
 async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=todayStr(); const idx=state.completions.findIndex(c=>c.date===t&&c.drillId===drillId);
   const wasComplete = idx>=0;
   if(idx>=0){
-    // Un-checking (e.g. a mis-click): roll the timing baseline back so the next drill's time isn't restarted.
+    // Un-checking. Stash the entry exactly as it was, plus the timing baseline, so that an
+    // accidental tap can be undone without losing the time that was already recorded.
     const removed = state.completions[idx];
     const st = state.profile && state.profile.sessionTimer;
+    state.undoStash = {drillId, date:t, entry:Object.assign({}, removed), lastMark: st?st.lastMark:null, at:Date.now()};
     if(st && removed && removed.tookSeconds!=null && st.lastMark!=null){ st.lastMark = Math.max(0, st.lastMark - removed.tookSeconds); await persistProfile(); }
     state.completions.splice(idx,1);
   }
   else {
+    // Re-ticking a drill you just un-ticked by mistake: put back the original entry and its
+    // original time, instead of re-measuring from the stopwatch (which would inflate it).
+    const stash = state.undoStash;
+    if(loggedSeconds==null && loggedMinutes==null && stash && stash.drillId===drillId && stash.date===t && (Date.now()-stash.at) < 300000){
+      state.completions.push(Object.assign({}, stash.entry));
+      const st = state.profile && state.profile.sessionTimer;
+      if(st && stash.lastMark!=null){ st.lastMark = stash.lastMark; await persistProfile(); }
+      state.undoStash = null;
+      await persistActivity(); render();
+      return;
+    }
     const mins = (loggedMinutes!=null?loggedMinutes:null);
     // How long this drill took. Two ways to get it: the drill's own timer (which passes the
     // seconds in directly), or — if you just tick a drill off — the gap on the session
@@ -772,7 +801,6 @@ async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=to
     const st = state.profile && state.profile.sessionTimer;
     if(loggedSeconds!=null){
       tookSeconds = loggedSeconds;
-      // keep the session baseline in step so the next drill isn't credited with this one's time
       if(st){ st.lastMark = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed; await persistProfile(); }
     } else if(st){
       const nowSecs = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed;
@@ -780,6 +808,7 @@ async function toggleComplete(drillId, loggedMinutes, loggedSeconds){ const t=to
       st.lastMark = nowSecs;
       await persistProfile();
     }
+    state.undoStash = null;
     state.completions.push({date:t, drillId, minutes:mins, seconds:loggedSeconds!=null?loggedSeconds:(loggedMinutes!=null?loggedMinutes*60:null), logged: loggedMinutes!=null, tookSeconds});
   }
   await persistActivity(); render();
@@ -930,25 +959,60 @@ async function regenerateToday(){
   await sSet('plan-cache', state.planCache); render();
 }
 async function regenTodayWithMinutes(){ state.planCache = computePlan(todayStr(), state.todayMinutes, state.planCache?state.planCache.salt:''); await sSet('plan-cache', state.planCache); render(); }
-/* Adds drills to today without asking which — most-needed areas first. */
-async function addMoreDrills(){
+/* "Give me more drills": pick which parts of the game, then drills go straight in —
+   you're never asked to choose a specific drill. */
+function openMoreDrills(){
+  state.moreDrillsDraft = new Set((state.focusAreas && state.focusAreas.length) ? state.focusAreas : []);
+  state.moreDrillsOpen = true; state.adjustOpen = false; render();
+}
+function closeMoreDrills(){ state.moreDrillsOpen=false; render(); }
+function toggleMoreArea(id){
+  if(!state.moreDrillsDraft) state.moreDrillsDraft=new Set();
+  if(state.moreDrillsDraft.has(id)) state.moreDrillsDraft.delete(id); else state.moreDrillsDraft.add(id);
+  render();
+}
+async function addMoreDrills(areaIds){
   ensureTodayPlan();
   const plan = state.planCache;
   const inPlan = new Set(plan.items.map(i=>i.drillId));
-  const order = (state.focusAreas && state.focusAreas.length) ? state.focusAreas : state.ranking;
+  const areas = (areaIds && areaIds.length) ? areaIds
+    : ((state.focusAreas && state.focusAreas.length) ? state.focusAreas : state.ranking.slice(0,2));
   let added = 0;
-  for(const areaId of order){
+  for(const areaId of areas){
     const pool = filterByDifficulty(allDrills().filter(d=>d.area===areaId && !d.fixed && !d.performance && !inPlan.has(d.id)), state.profile);
     if(!pool.length) continue;
     const pick = pool[Math.floor(Math.random()*pool.length)];
     plan.items.push({key:'added_'+pick.id+'_'+Date.now()+'_'+added, area:areaId, drillId:pick.id, minutes:10, fixed:false});
     inPlan.add(pick.id); added++;
-    if(added>=2) break;
   }
-  if(!added){ setToast('No more drills left to add'); return; }
-  state.reducedMode = false;
+  if(!added){ setToast('No more drills left in those areas'); return; }
+  state.reducedMode=false; state.moreDrillsOpen=false;
   await sSet('plan-cache', plan);
-  setToast('Added '+added+' more drill'+(added===1?'':'s')); render();
+  setToast('Added '+added+' drill'+(added===1?'':'s')); render();
+}
+async function applyMoreDrills(){
+  const picked = AREAS.map(a=>a.id).filter(id=>state.moreDrillsDraft && state.moreDrillsDraft.has(id));
+  if(!picked.length){ setToast('Pick at least one area'); return; }
+  await addMoreDrills(picked);
+}
+/* Remove mode puts an ✕ on every drill so one can be taken out of today. */
+function toggleRemoveMode(){ state.removeMode=!state.removeMode; if(state.removeMode) state.adjustOpen=false; render(); }
+/* Type in how long a drill took, for when you forgot to check it off while practising. */
+async function logDrillTime(drillId){
+  const t = todayStr();
+  const existing = state.completions.find(c=>c.date===t && c.drillId===drillId);
+  const cur = existing ? String(existing.tookSeconds!=null ? Math.max(1,Math.round(existing.tookSeconds/60)) : (existing.minutes||'')) : '';
+  const v = prompt('How many minutes did this drill take?', cur);
+  if(v===null) return;
+  const n = parseFloat(v);
+  if(isNaN(n) || n<=0){ setToast('Enter a number of minutes'); return; }
+  const mins = Math.max(1, Math.round(n)), secs = Math.round(n*60);
+  if(existing){
+    existing.minutes=mins; existing.seconds=secs; existing.tookSeconds=secs; existing.logged=true;
+    await persistActivity(); render();
+  } else {
+    await toggleComplete(drillId, mins, secs);
+  }
 }
 async function toggleReducedMode(){
   state.reducedMode = !state.reducedMode;
@@ -1401,23 +1465,43 @@ function renderToday(){
       <div class="rowline"><strong style="font-size:15px">More options</strong><button class="linkbtn" onclick="toggleAdjust()">Done</button></div>
       <div class="adjustlbl" style="margin-top:12px">Session size</div>
       <div class="adjustrow">
-        <button class="btn secondary" onclick="addMoreDrills()">Give me more drills</button>
+        <button class="btn secondary" onclick="openMoreDrills()">Give me more drills</button>
         <button class="btn secondary" onclick="toggleReducedMode()">${state.reducedMode?'Back to full plan':'Give me fewer drills'}</button>
       </div>
       <div class="adjustrow" style="margin-top:8px">
         <button class="btn secondary" onclick="setCustomMinutesPrompt()">Set exact minutes</button>
+        <button class="btn secondary" onclick="toggleRemoveMode()">${state.removeMode?'Done removing':'Remove a drill'}</button>
       </div>
       <div class="adjustlbl">Prefer to choose yourself?</div>
       <div class="adjustrow"><button class="btn secondary" onclick="switchView('buildplan')">Build my own plan →</button>
       ${untimed?'':`<button class="btn secondary" onclick="toggleSessionMode()">Switch to untimed</button>`}</div>
     </div>` : `<button class="adjustbtn" onclick="toggleAdjust()">⚙ More options — session size &amp; more</button>`;
 
+  const mdDraft = state.moreDrillsDraft || new Set();
+  const moreDrillsCard = state.moreDrillsOpen ? `
+    <div class="focuscard">
+      <div class="rowline"><strong style="font-size:13.5px">More drills — which areas?</strong><button class="linkbtn" style="font-size:12px" onclick="closeMoreDrills()">Close</button></div>
+      <div class="focusgrid">
+        ${AREAS.map(a=>`<button class="focuschip ${mdDraft.has(a.id)?'on':''}" onclick="toggleMoreArea('${a.id}')">
+          <span class="focustick">${mdDraft.has(a.id)?'✓':''}</span>${AREA_SHORT[a.id]||a.label}</button>`).join('')}
+      </div>
+      <div class="adjustrow" style="margin-top:10px">
+        <button class="btn small" style="flex:1" onclick="applyMoreDrills()">Add${mdDraft.size?' ('+mdDraft.size+')':''}</button>
+        <button class="btn small secondary" style="flex:1" onclick="closeMoreDrills()">Cancel</button>
+      </div>
+      <p class="muted" style="font-size:11.5px;margin:9px 0 0">One drill is added per area you pick — we choose which.</p>
+    </div>` : '';
+  const removeBanner = state.removeMode ? `
+    <div class="focusactive" style="border-left-color:var(--danger)">
+      <span style="font-size:12.5px;font-weight:800">✕ Tap Remove on any drill</span>
+      <button class="linkbtn" style="font-size:12px;color:var(--fairway)" onclick="toggleRemoveMode()">Done</button>
+    </div>` : '';
   const sessionHeader = `
     <div class="sectionband">
       <h2 class="sectionhead">Your practice plan</h2>
       <p class="sectionsub">Broken into blocks with a time budget for each. Work down in order — tap a drill for setup instructions, then tap the circle to check it off.</p>
     </div>
-    ${focusCard}${controlBar}${adjustPanel}`;
+    ${focusCard}${moreDrillsCard}${removeBanner}${controlBar}${adjustPanel}`;
 
   // Group today's drills by area so the session reads as blocks with their own time budget.
   const groups = [];
@@ -1443,8 +1527,11 @@ function renderToday(){
         <div class="drilldesc">${escapeHtml(d.description)}</div>
         <div class="drilltarget">🎯 ${escapeHtml(d.repsOrTime)}</div>${targetTweak()}
         ${took!=null?`<div class="muted" style="font-size:11.5px;margin-top:6px">⏱ Took ${fmtTime(took)}</div>`:''}
-        <div class="drillopen">Tap for full instructions ›</div>
-        ${added?`<button class="linkbtn" style="font-size:12px;color:var(--danger);margin-top:6px" onclick="event.stopPropagation();removePlanItem('${item.key}')">Remove</button>`:''}
+        <div class="cardacts">
+          <span class="drillopen">Tap for full instructions ›</span>
+          <button class="linkbtn cardact" onclick="event.stopPropagation();logDrillTime('${item.drillId}')">⏱ ${took!=null?'Edit time':'Enter time'}</button>
+          ${(added || state.removeMode) && !item.fixed?`<button class="linkbtn cardact" style="color:var(--danger)" onclick="event.stopPropagation();removePlanItem('${item.key}')">✕ Remove</button>`:''}
+        </div>
       </div>
       ${state.swapMode && !item.fixed
         ? `<span class="bigcheck ${state.swapSelection.has(item.key)?'done':''}" onclick="toggleSwapSelect('${item.key}')">${state.swapSelection.has(item.key)?'✓':''}</span>`
@@ -1462,7 +1549,7 @@ function renderToday(){
         <div class="areaname">${gi+1}. ${areaLabel(g.area)}</div>
         <div class="areameta">${g.items.length} drill${g.items.length===1?'':'s'}${untimed?'':' · about '+mins+' min'}${rank===1?' · your #1 focus':''}</div>
       </div>
-      <span class="areaprog ${allGDone?'done':''}">${allGDone?'✓':gDoneN+'/'+g.items.length}</span>
+      <button class="areaprog ${allGDone?'done':''}" onclick="toggleSection('${g.area}')" title="${allGDone?'Un-check this section':'Check off this whole section'}">${allGDone?'✓':gDoneN+'/'+g.items.length}</button>
     </div>`;
     return head + g.items.map(renderCard).join('');
   }).join('') || '<div class="empty">No drills scheduled — try adding more time above.</div>';
