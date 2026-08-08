@@ -101,13 +101,15 @@ p{margin:0 0 8px;line-height:1.45;}
 .sectionsub{font-size:12.5px;line-height:1.4;margin:4px 0 0;color:var(--ink);font-weight:600;text-shadow:none;opacity:.85;}
 .bandbtns{display:flex;gap:16px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
 .bandbtns .linkbtn{color:var(--fairway);text-shadow:none;font-size:13px;}
-.areahead{display:flex;align-items:center;gap:11px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:11px 14px;margin:20px 0 10px;box-shadow:0 3px 12px rgba(47,82,51,.25);}
+.areahead{display:flex;align-items:center;gap:8px;background:var(--fairway);color:var(--chalk);border-radius:14px;padding:11px 14px;margin:20px 0 10px;box-shadow:0 3px 12px rgba(47,82,51,.25);}
 .areahead:first-child{margin-top:0;}
 .areahead.areadone{opacity:.55;}
 .areaicon{display:flex;align-items:center;justify-content:center;width:32px;height:32px;flex-shrink:0;background:var(--chalk);border-radius:50%;font-size:16px;}
-.areaname{font-size:16px;font-weight:800;line-height:1.2;}
+.areaname{font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .areameta{font-size:11.5px;font-weight:600;opacity:.85;margin-top:2px;}
-.areaprog{flex-shrink:0;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;background:rgba(255,255,255,.16);border-radius:9px;padding:4px 10px;}
+.areatime{flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;opacity:.9;}
+.areahint{flex-shrink:0;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.75;}
+.areaprog{flex-shrink:0;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:700;background:rgba(255,255,255,.16);border-radius:9px;padding:4px 10px;}
 .areaprog.done{background:var(--flag);color:var(--ink);}
 .drillcard.ingroup{margin-left:10px;}
 .drillcard{background:var(--paper);border-radius:18px;padding:15px 16px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.08);display:flex;gap:13px;align-items:flex-start;position:relative;}
@@ -763,10 +765,30 @@ async function toggleSection(areaId){
   const items = (state.planCache.items||[]).filter(i=>i.area===areaId);
   if(!items.length) return;
   const t = todayStr();
-  const allDone = items.every(i=>state.completions.some(c=>c.date===t && c.drillId===i.drillId));
-  for(const i of items){
-    const done = state.completions.some(c=>c.date===t && c.drillId===i.drillId);
-    if(allDone ? done : !done) await toggleComplete(i.drillId);
+  const isDone = i => state.completions.some(c=>c.date===t && c.drillId===i.drillId);
+  const allDone = items.every(isDone);
+  if(allDone){
+    for(const i of items){ if(isDone(i)) await toggleComplete(i.drillId); }
+    render();
+    return;
+  }
+  // Checking the block off: share the time since the last check-off evenly between the
+  // drills being ticked, so one doesn't swallow the whole gap and the rest read 0:00.
+  const toDo = items.filter(i=>!isDone(i));
+  const st = state.profile && state.profile.sessionTimer;
+  let share = null;
+  if(st){
+    const nowSecs = st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed;
+    const gap = Math.max(0, nowSecs - (st.lastMark||0));
+    share = Math.round(gap / toDo.length);
+  }
+  for(const i of toDo) await toggleComplete(i.drillId);
+  if(share!=null){
+    toDo.forEach(i=>{
+      const c = state.completions.find(x=>x.date===t && x.drillId===i.drillId);
+      if(c) c.tookSeconds = share;
+    });
+    await persistActivity();
   }
   render();
 }
@@ -1542,14 +1564,21 @@ function renderToday(){
     const mins = g.items.reduce((s,i)=>s+(i.minutes||0),0);
     const gDoneN = g.items.filter(i=>state.completions.some(c=>c.date===todayStr()&&c.drillId===i.drillId)).length;
     const rank = state.ranking.indexOf(g.area)+1;
+    // real time spent in this block, added up from the drills that have been logged
+    const spentSecs = g.items.reduce((s,i)=>{
+      const c = state.completions.find(x=>x.date===todayStr() && x.drillId===i.drillId);
+      return s + (c && c.tookSeconds!=null ? c.tookSeconds : 0);
+    }, 0);
     const allGDone = gDoneN===g.items.length;
     const head = `<div class="areahead ${allGDone?'areadone':''}">
       <span class="areaicon">${AREA_ICON[g.area]}</span>
       <div style="flex:1;min-width:0">
-        <div class="areaname">${gi+1}. ${areaLabel(g.area)}</div>
+        <div class="areaname">${gi+1}. ${AREA_SHORT[g.area]||areaLabel(g.area)}</div>
         <div class="areameta">${g.items.length} drill${g.items.length===1?'':'s'}${untimed?'':' · about '+mins+' min'}${rank===1?' · your #1 focus':''}</div>
       </div>
-      <button class="areaprog ${allGDone?'done':''}" onclick="toggleSection('${g.area}')" title="${allGDone?'Un-check this section':'Check off this whole section'}">${allGDone?'✓':gDoneN+'/'+g.items.length}</button>
+      ${spentSecs>0?`<span class="areatime">${fmtTime(spentSecs)}</span>`:''}
+      <span class="areahint">${allGDone?'Undo all':'Mark all'}</span>
+      <button class="areaprog ${allGDone?'done':''}" onclick="toggleSection('${g.area}')" title="${allGDone?'Un-check this whole section':'Check off this whole section'}">${allGDone?'✓':gDoneN+'/'+g.items.length}</button>
     </div>`;
     return head + g.items.map(renderCard).join('');
   }).join('') || '<div class="empty">No drills scheduled — try adding more time above.</div>';
