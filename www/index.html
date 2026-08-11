@@ -532,6 +532,109 @@ function captureProfileFields(){
 }
 let timerInterval=null, sessionInterval=null;
 
+/* ---------- practice notification ----------
+   A live notification showing the drill you're on and the running clock, with buttons to
+   pause, finish or move to the next drill. Needs a service worker: it's the only way to get
+   a notification that stays put and carries buttons.
+   Platform note: Android/desktop show the buttons. iOS shows the notification (once the app
+   is added to the Home Screen) but ignores action buttons — tapping it still opens the drill. */
+let swReg = null, notifTick = null, lastNotifSecs = -99;
+function notifSupported(){ return 'serviceWorker' in navigator && 'Notification' in window; }
+function notifOn(){ return !!(state.profile && state.profile.notifications) && notifSupported() && Notification.permission==='granted'; }
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    swReg = await navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.addEventListener('message', ev=>{
+      const d = ev.data||{};
+      if(d.type==='notif-action') handleNotifAction(d.action);
+    });
+  }catch(e){ console.warn('service worker not available', e); }
+}
+async function toggleNotifications(){
+  if(!notifSupported()){ setToast('This device does not support notifications'); return; }
+  if(state.profile.notifications){
+    state.profile.notifications = false;
+    clearPracticeNotification();
+    await persistProfile(); setToast('Notifications off'); render(); return;
+  }
+  let perm = Notification.permission;
+  if(perm==='default') perm = await Notification.requestPermission();
+  if(perm!=='granted'){ setToast('Notifications are blocked in your browser settings'); render(); return; }
+  state.profile.notifications = true;
+  await persistProfile(); setToast('Notifications on'); render();
+  updatePracticeNotification(true);
+}
+/* Which drill is on screen (or next up), for the notification body. */
+function currentNotifDrill(){
+  if(state.view==='drilldetail' && state.detailDrillId) return allDrills().find(d=>d.id===state.detailDrillId);
+  const plan = state.planCache;
+  if(!plan) return null;
+  const next = (plan.items||[]).find(i=>!state.completions.some(c=>c.date===todayStr()&&c.drillId===i.drillId));
+  return next ? allDrills().find(d=>d.id===next.drillId) : null;
+}
+function practiceSeconds(){
+  if(state.timer) return state.timer.elapsed;
+  const st = state.profile && state.profile.sessionTimer;
+  if(st) return st.running ? Math.floor((Date.now()-st.start)/1000) : st.elapsed;
+  return 0;
+}
+function practiceRunning(){
+  const st = state.profile && state.profile.sessionTimer;
+  return !!state.timer || !!(st && st.running);
+}
+function updatePracticeNotification(force){
+  if(!notifOn() || !swReg || !swReg.active){ return; }
+  if(!practiceRunning()){ clearPracticeNotification(); return; }
+  const secs = practiceSeconds();
+  // only redraw every 15s so the notification isn't rebuilt on every tick
+  if(!force && Math.abs(secs-lastNotifSecs) < 15) return;
+  lastNotifSecs = secs;
+  const d = currentNotifDrill();
+  const paused = !practiceRunning();
+  swReg.active.postMessage({type:'show', title: d ? d.name : 'Range Caddy practice', options:{
+    tag:'rc-practice', renotify:false, silent:true, requireInteraction:true,
+    body: fmtTime(secs) + (d && d.repsOrTime ? ' · ' + d.repsOrTime : ''),
+    icon:'icon-180.png', badge:'icon-180.png',
+    actions:[{action:'pause',title:'Pause'},{action:'next',title:'Next drill'},{action:'finish',title:'Finish'}]
+  }});
+}
+function clearPracticeNotification(){
+  lastNotifSecs = -99;
+  if(swReg && swReg.active) swReg.active.postMessage({type:'clear'});
+}
+/* Keeps the notification's clock moving while the app is in the background. */
+function startNotifLoop(){
+  if(notifTick) return;
+  notifTick = setInterval(()=>{
+    if(practiceRunning()) updatePracticeNotification(); else { clearPracticeNotification(); stopNotifLoop(); }
+  }, 5000);
+}
+function stopNotifLoop(){ if(notifTick){ clearInterval(notifTick); notifTick=null; } }
+async function handleNotifAction(action){
+  if(action==='pause'){
+    if(state.timer){ stopTimer(); }
+    else if(state.profile && state.profile.sessionTimer && state.profile.sessionTimer.running) pauseSessionTimer();
+    updatePracticeNotification(true);
+    return;
+  }
+  if(action==='finish'){
+    if(state.timer) await finishDrillTimed();
+    else if(state.profile && state.profile.sessionTimer) await logSessionTimer();
+    clearPracticeNotification(); stopNotifLoop();
+    return;
+  }
+  if(action==='next'){
+    if(state.view==='drilldetail') await goNextDrill();
+    else { const d=currentNotifDrill(); if(d) openDrill(d.id,'today'); }
+    updatePracticeNotification(true);
+    return;
+  }
+  // plain tap — open whatever drill is current
+  const d = currentNotifDrill();
+  if(d) openDrill(d.id,'today'); else switchView('today');
+}
+
 /* A suggestion is one of three kinds — normal drill, performance drill, or game.
    Once approved it's shown with that kind's own badge (not a generic "Community" tag). */
 function communityDrills(){ return (state.approvedSuggestions||[]).filter(s=>s.kind!=='game').map(s=>({id:'sug_'+s.id, area:s.area, name:s.name, description:s.description||'', setup:'Suggested by '+(s.author||'a golfer')+'.', repsOrTime:'As needed', success:'Give it a go and track how you do.', difficulty:'Intermediate', performance: s.kind==='performance'})); }
@@ -858,10 +961,10 @@ async function addMoreDrills(){
   await sSet('plan-cache', state.planCache); setToast('Added '+added.length+' more drill'+(added.length===1?'':'s')); render();
 }
 /* drill detail */
-function openDrill(drillId, from){ state.detailDrillId=drillId; state.detailFrom=from||'today'; state.view='drilldetail'; render(); }
+function openDrill(drillId, from){ state.detailDrillId=drillId; state.detailFrom=from||'today'; state.view='drilldetail'; render(); updatePracticeNotification(true); }
 function closeDrill(){ stopTimer(true); state.detailDrillId=null; state.view=state.detailFrom||'today'; if(state.view==='today') ensureTodayPlan(); render(); }
 /* timer */
-function startTimer(){ state.timer={start:Date.now(), elapsed:0}; timerInterval=setInterval(()=>{ if(state.timer){ state.timer.elapsed=Math.floor((Date.now()-state.timer.start)/1000); const el=document.getElementById('timer_display'); if(el) el.textContent=fmtTime(state.timer.elapsed); } },1000); render(); }
+function startTimer(){ state.timer={start:Date.now(), elapsed:0}; startNotifLoop(); updatePracticeNotification(true); timerInterval=setInterval(()=>{ if(state.timer){ state.timer.elapsed=Math.floor((Date.now()-state.timer.start)/1000); const el=document.getElementById('timer_display'); if(el) el.textContent=fmtTime(state.timer.elapsed); } },1000); render(); }
 function stopTimer(silent){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } if(!silent) render(); }
 function fmtTime(s){ const m=Math.floor(s/60), sec=s%60; return m+':'+String(sec).padStart(2,'0'); }
 async function finishDrillTimed(){ const secs=state.timer?state.timer.elapsed:0; const mins=Math.max(1,Math.round(secs/60)); stopTimer(true); state.timer=null; await toggleComplete(state.detailDrillId, mins, secs); if(state.detailFrom==='today' && nextDrillId()) goNextDrill(); else closeDrill(); }
@@ -890,6 +993,7 @@ function goPrevDrill(){ stopTimer(true); state.timer=null; const p=prevDrillId()
 /* session-level timer (whole practice) */
 function startSessionTimer(){ if(!state.profile) return; const prev=state.profile.sessionTimer; const base=(prev&&!prev.running)?prev.elapsed:0; const lastMark=(prev&&prev.lastMark!=null)?prev.lastMark:0;
   state.profile.sessionTimer={start:Date.now()-base*1000, elapsed:base, running:true, lastMark};
+  startNotifLoop(); updatePracticeNotification(true);
   sessionInterval=setInterval(()=>{ const st=state.profile.sessionTimer; if(st&&st.running){ st.elapsed=Math.floor((Date.now()-st.start)/1000); const el=document.getElementById('session_timer'); if(el) el.textContent=fmtTime(st.elapsed); } },1000); render(); }
 /* A running stopwatch survives in storage but its interval doesn't survive a reload —
    restart the ticking if we come back to a session that was still running. */
@@ -902,11 +1006,11 @@ function ensureSessionTicking(){
       const el = document.getElementById('session_timer'); if(el) el.textContent = fmtTime(s.elapsed); }
   }, 1000);
 }
-function pauseSessionTimer(){ const st=state.profile.sessionTimer; if(st){ st.elapsed=Math.floor((Date.now()-st.start)/1000); st.running=false; } if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;} render(); }
+function pauseSessionTimer(){ clearPracticeNotification(); const st=state.profile.sessionTimer; if(st){ st.elapsed=Math.floor((Date.now()-st.start)/1000); st.running=false; } if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;} render(); }
 async function logSessionTimer(){ const st=state.profile.sessionTimer; if(!st) return; const secs=st.running?Math.floor((Date.now()-st.start)/1000):st.elapsed; const mins=Math.max(1,Math.round(secs/60));
   if(sessionInterval){clearInterval(sessionInterval);sessionInterval=null;}
   state.completions.push({date:todayStr(), drillId:'__session__', minutes:mins, seconds:secs, logged:true, sessionLog:true});
-  state.profile.sessionTimer=null; await persistActivity(); await persistProfile(); setToast('Logged '+fmtTime(secs)+' session'); render();
+  state.profile.sessionTimer=null; clearPracticeNotification(); stopNotifLoop(); await persistActivity(); await persistProfile(); setToast('Logged '+fmtTime(secs)+' session'); render();
 }
 /* game detail (works like a drill) */
 function openGame(id,from){ state.detailGameId=id; state.detailFrom=from||'games'; state.view='gamedetail'; render(); }
@@ -1379,6 +1483,8 @@ function renderProfileSummary(){
   <div class="card">
     <div class="inforow"><span>Handicap</span><span>${p.handicap||'—'}</span></div>
     <div class="inforow"><span>Commitment</span><span>${COMMIT_LABEL[p.commitment||'regular']}</span></div>
+    <div class="inforow"><span>Practice notifications</span>
+      <button class="btn small ${p.notifications?'':'secondary'}" onclick="toggleNotifications()">${p.notifications?'On':'Off'}</button></div>
     <div class="inforow"><span>Dominant hand</span><span>${p.hand==='L'?'Left':'Right'}</span></div>
     <div class="inforow"><span>Session mode</span><span>${p.sessionMode==='untimed'?'Untimed':'Timed · '+p.sessionLength+' min'}</span></div>
     <div class="inforow"><span>Starts with</span><span>${areaLabel(p.startArea)}</span></div>
@@ -2209,11 +2315,19 @@ async function init(){
   state.planCache=plan;
   state.seenToday = await sGet('seen-today', null);
   state.focusAreas = await sGet('focus-areas', null);
+  if(practiceRunning()){ startNotifLoop(); updatePracticeNotification(true); }
   state.view = state.profile ? 'today' : 'onboarding';
   render();
   hideSplash();
   loadApprovedSuggestions().then(render);   // pull approved community drills into the Library
 }
+
+/* The service worker backs the practice notification, so register it up front — it must exist
+   whether or not anyone is signed in yet. */
+registerSW().then(()=>{
+  const a = new URLSearchParams(location.search).get('rcAction');
+  if(a) setTimeout(()=>handleNotifAction(a), 600);
+});
 
 /* Startup: when accounts are available, auth state decides what shows.
    No user → login/signup screen. Signed in → load their cloud data, then the app. */
