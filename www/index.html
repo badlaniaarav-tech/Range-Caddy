@@ -169,6 +169,12 @@ p{margin:0 0 8px;line-height:1.45;}
 .stepcard{background:var(--paper);border-radius:16px;border-left:5px solid var(--fairway);padding:14px 16px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
 .stepcardlbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--fairway);margin-bottom:6px;}
 .stepcardtxt{font-size:14.5px;line-height:1.5;}
+.diagwrap{margin-top:12px;}
+.drilldiag{width:100%;height:auto;display:block;border-radius:10px;}
+.drilldiag .dgl{font-family:'Inter',sans-serif;font-size:9px;font-weight:800;fill:var(--ink);opacity:.75;}
+.drilldiag .dgy{font-family:'Inter',sans-serif;font-size:7px;font-weight:800;fill:var(--chalk);letter-spacing:.3px;}
+.drilldiag .dgc{font-family:'Inter',sans-serif;font-size:9.5px;font-weight:700;fill:var(--fairway);}
+.diagcap{font-size:11px;font-weight:600;opacity:.6;text-align:center;margin-top:5px;}
 .steplist{margin:0;padding-left:0;list-style:none;counter-reset:stepc;}
 .steplist li{counter-increment:stepc;position:relative;padding-left:30px;font-size:14.5px;line-height:1.5;margin-bottom:9px;}
 .steplist li:last-child{margin-bottom:0;}
@@ -549,20 +555,36 @@ async function registerSW(){
       const d = ev.data||{};
       if(d.type==='notif-action') handleNotifAction(d.action);
     });
-  }catch(e){ console.warn('service worker not available', e); }
+  }catch(e){ swReg=null; console.warn('service worker failed to register (is sw.js uploaded?)', e); }
 }
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent); }
+function isInstalled(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }
 async function toggleNotifications(){
-  if(!notifSupported()){ setToast('This device does not support notifications'); return; }
   if(state.profile.notifications){
     state.profile.notifications = false;
     clearPracticeNotification();
     await persistProfile(); setToast('Notifications off'); render(); return;
   }
+  if(!notifSupported()){ setToast('This browser cannot show notifications'); return; }
+  // On iPhone/iPad the app has to be installed to the Home Screen before iOS will allow them.
+  if(isIOS() && !isInstalled()){
+    alert("To get practice notifications on iPhone:\n\n1. Tap the Share button in Safari\n2. Choose \"Add to Home Screen\"\n3. Open Range Caddy from that icon\n4. Turn notifications on again here\n\niOS only allows notifications for apps added to the Home Screen.");
+    return;
+  }
+  if(!swReg){ await registerSW(); }
+  if(!swReg){ setToast('Could not start the notification service — reload and try again'); return; }
   let perm = Notification.permission;
   if(perm==='default') perm = await Notification.requestPermission();
-  if(perm!=='granted'){ setToast('Notifications are blocked in your browser settings'); render(); return; }
+  if(perm==='denied'){ setToast('Notifications are blocked — allow them in your device settings'); render(); return; }
+  if(perm!=='granted'){ setToast('Notifications were not allowed'); render(); return; }
   state.profile.notifications = true;
-  await persistProfile(); setToast('Notifications on'); render();
+  await persistProfile();
+  setToast('Notifications on'); render();
+  // prove it works straight away
+  if(swReg.active) swReg.active.postMessage({type:'show', title:'Range Caddy', options:{
+    tag:'rc-practice', body:'Notifications are on. Your drill and timer will show here while you practise.',
+    icon:'icon-180.png', badge:'icon-180.png'
+  }});
   updatePracticeNotification(true);
 }
 /* Which drill is on screen (or next up), for the notification body. */
@@ -1973,6 +1995,473 @@ function drillJargon(d){
   GLOSSARY.forEach(([re,term,def])=>{ if(re.test(text) && !out.some(x=>x[0]===term)) out.push([term,def]); });
   return out.slice(0,6);
 }
+/* ---------- drill setup diagrams ----------
+   Simple top-down pictures of how to lay a drill out — where the tees go, how far apart,
+   where you stand. Built from the numbers in each drill's own setup text, so they stay in
+   step with the drill. A drill only gets a diagram when its layout is recognised: a wrong
+   picture is worse than none. */
+const WORDNUM = {one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,twelve:12,fifteen:15,twenty:20,thirty:30,forty:40,fifty:50,sixty:60};
+/* Pull real DISTANCES out of a drill's own words. Only numbers carrying a distance unit
+   count — "(12)" and "4 tees" are quantities, not distances, and reading them as distances
+   is what produces a nonsense picture. Handles runs like "15, 20, 30 and 40 ft" where only
+   the last number is followed by the unit. */
+function diagDists(d, unitWanted, lo, hi, max){
+  let txt = ((d.setup||'') + ' ' + (d.repsOrTime||''))
+    .replace(/\((\d+)\)/g, ' ')                                            // (12) = a count
+    .replace(/\b(\d+)\s*(?:tees?|balls?|putts?|shots?|clubs?|holes?|coins?|min|minutes?)\b/gi, ' ')
+    .replace(/\b(\d+):\d{2}\b/g, ' ')                                     // clock positions
+    .replace(/\b\d+(?:\.\d+)?\s*(?:ft|feet|foot|'|yards?|yds?|yd|in|inches)\s*apart\b/gi, ' ')  // spacing, not a distance to play from
+    .replace(/\b\d+(?:\.\d+)?\s*(?:ft|feet|foot|'|yards?|yds?|yd)\s*behind\b/gi, ' ');
+  // "two-footers" / "five footers" -> "2 ft"
+  txt = txt.replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty|thirty|forty|fifty|sixty)[-\s]?foot(?:er)?s?\b/gi,
+    (m,w)=> ' ' + (WORDNUM[w.toLowerCase()]||'') + ' ft ');
+  txt = txt.replace(/\b(\d+)[-\s]?foot(?:er)?s?\b/gi, ' $1 ft ');
+  const out=[], seen=new Set();
+  const re=/((?:\d+(?:\.\d+)?\s*(?:,|and|&|-|–|to)\s*)*\d+(?:\.\d+)?)\s*(ft|feet|foot|'|yards?|yds?|yd)\b/gi;
+  let m;
+  while((m=re.exec(txt))){
+    const unit = /y/i.test(m[2]) ? 'yd' : 'ft';
+    if(unit !== unitWanted) continue;
+    m[1].split(/\s*(?:,|and|&|-|–|to)\s*/).forEach(str=>{
+      const n = parseFloat(str);
+      if(isNaN(n) || n<lo || n>hi || seen.has(n)) return;
+      seen.add(n); out.push(n);
+    });
+  }
+  return out.slice(0, max||6);
+}
+const DG = {
+  w: 320, h: 170,
+  open(){ return '<svg class="drilldiag" viewBox="0 0 320 170" xmlns="http://www.w3.org/2000/svg">'; },
+  close(){ return '</svg>'; },
+  turf(){ return '<rect x="0" y="0" width="320" height="170" rx="10" fill="var(--chalk)"/>'; },
+  hole(x,y,label){ return `<circle cx="${x}" cy="${y}" r="7" fill="var(--ink)"/><circle cx="${x}" cy="${y}" r="3" fill="var(--chalk)"/>`
+    + (label?`<text x="${x}" y="${y-13}" class="dgl" text-anchor="middle">${label}</text>`:''); },
+  flag(x,y){ return `<line x1="${x}" y1="${y}" x2="${x}" y2="${y-26}" stroke="var(--ink)" stroke-width="2"/>`
+    + `<path d="M${x} ${y-26} L${x+16} ${y-21} L${x} ${y-16} Z" fill="var(--danger)"/>` + DG.hole(x,y); },
+  tee(x,y,label){ return `<circle cx="${x}" cy="${y}" r="4.5" fill="var(--fairway)"/>`
+    + (label?`<text x="${x}" y="${y+16}" class="dgl" text-anchor="middle">${label}</text>`:''); },
+  ball(x,y){ return `<circle cx="${x}" cy="${y}" r="5" fill="#fff" stroke="var(--ink)" stroke-width="1.5"/>`; },
+  you(x,y){ return `<circle cx="${x}" cy="${y}" r="9" fill="var(--fairway)"/><text x="${x}" y="${y+3.5}" class="dgy" text-anchor="middle">YOU</text>`; },
+  green(cx,cy,rx,ry){ return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="var(--fairway)" opacity=".16" stroke="var(--fairway)" stroke-width="1.5" stroke-dasharray="4 3"/>`; }
+};
+/* tees in a ring around the hole — spoke drills, clock drill, distance circles */
+function dgCircle(dists){
+  const cx=160, cy=88;
+  let s = DG.open()+DG.turf()+DG.green(cx,cy,140,72);
+  const rings = dists.slice(0,3);
+  const maxR = 62, minR = 26;
+  rings.forEach((ft,ri)=>{
+    const r = rings.length===1 ? 46 : minR + (maxR-minR)*(ri/(rings.length-1));
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 4" opacity=".55"/>`;
+    const n = 6;
+    for(let i=0;i<n;i++){
+      const a = (Math.PI*2*i/n) - Math.PI/2;
+      s += DG.tee(cx+Math.cos(a)*r, cy+Math.sin(a)*r);
+    }
+    s += `<text x="${cx}" y="${cy-r-5}" class="dgl" text-anchor="middle">${ft} ft</text>`;
+  });
+  s += DG.hole(cx,cy);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Tees in a ring around the hole</text>`;
+  return s+DG.close();
+}
+/* tees marching away from the hole — ladders, lag work, distance control */
+function dgLine(dists, unit, stickBehind){
+  const y=78, x0=42, x1=294;
+  let s = DG.open()+DG.turf()+DG.green(150,y,150,58);
+  s += `<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 4" opacity=".6"/>`;
+  if(stickBehind) s += `<line x1="${x0-16}" y1="${y-22}" x2="${x0-16}" y2="${y+22}" stroke="var(--flag-dark)" stroke-width="3"/><text x="${x0-16}" y="${y+36}" class="dgl" text-anchor="middle">stick</text>`;
+  s += DG.hole(x0,y);
+  const n = dists.length;
+  dists.forEach((v,i)=>{
+    const x = x0 + 38 + (n===1?90:(x1-x0-46)*(i/(n-1)));
+    s += DG.tee(x,y, v+(unit||'ft'));
+  });
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Work back from the hole, one distance at a time</text>`;
+  return s+DG.close();
+}
+/* landing tees in a row on the green, with you playing in from off it */
+function dgLanding(count, gapLabel, fromLabel){
+  const y=70; let s = DG.open()+DG.turf()+DG.green(196,y+6,116,54);
+  s += DG.you(40,y+6);
+  for(let i=0;i<count;i++){
+    const x = 126 + i*56;
+    s += `<circle cx="${x}" cy="${y+6}" r="15" fill="none" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="2 3" opacity=".7"/>`;
+    s += DG.tee(x,y+6);
+    if(i<count-1) s += `<line x1="${x+6}" y1="${y+6}" x2="${x+50}" y2="${y+6}" stroke="var(--fairway)" stroke-width="1" opacity=".5"/>`;
+  }
+  if(gapLabel) s += `<text x="${126+28}" y="${y-14}" class="dgl" text-anchor="middle">${gapLabel} apart</text>`;
+  s += `<path d="M56 ${y+2} Q 92 ${y-30} 122 ${y+2}" fill="none" stroke="var(--danger)" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+  if(fromLabel) s += `<text x="40" y="${y+34}" class="dgl" text-anchor="middle">${fromLabel}</text>`;
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Land the ball next to each tee in turn</text>`;
+  return s+DG.close();
+}
+/* a gate of two tees you must roll or swing through */
+function dgGate(gapLabel, bare){
+  let s = DG.open()+DG.turf()+DG.green(160,80,140,60);
+  s += DG.ball(56,80);
+  s += DG.tee(140,66); s += DG.tee(140,94);
+  s += `<line x1="140" y1="70" x2="140" y2="90" stroke="var(--flag-dark)" stroke-width="1" stroke-dasharray="2 2"/>`;
+  if(gapLabel && !bare) s += `<text x="140" y="52" class="dgl" text-anchor="middle">${gapLabel}</text>`;
+  s += `<line x1="64" y1="80" x2="236" y2="80" stroke="var(--danger)" stroke-width="1.6" stroke-dasharray="4 3"/>`;
+  s += DG.hole(248,80);
+  if(!bare) s += `<text x="160" y="162" class="dgc" text-anchor="middle">Roll it through the gate without touching a tee</text>`;
+  return s+DG.close();
+}
+/* targets out on the range at set yardages */
+function dgTargets(yards){
+  let s = DG.open()+DG.turf();
+  s += `<rect x="0" y="118" width="320" height="52" rx="10" fill="var(--fairway)" opacity=".12"/>`;
+  s += DG.you(36,140);
+  const n=yards.length;
+  yards.forEach((v,i)=>{
+    const x = 96 + (n===1?90:(200)*(i/(n-1)));
+    const yy = 96 - i*0;
+    s += `<circle cx="${x}" cy="${yy}" r="17" fill="none" stroke="var(--fairway)" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+    s += `<circle cx="${x}" cy="${yy}" r="6" fill="var(--flag)"/>`;
+    s += `<text x="${x}" y="${yy+32}" class="dgl" text-anchor="middle">${v}</text>`;
+    s += `<path d="M50 134 Q ${(50+x)/2} ${yy-34} ${x} ${yy+8}" fill="none" stroke="var(--danger)" stroke-width="1.1" stroke-dasharray="3 3" opacity=".55"/>`;
+  });
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Hit each number in turn, then move on</text>`;
+  return s+DG.close();
+}
+/* shots played from all around a green */
+function dgAroundGreen(n){
+  const cx=160, cy=82;
+  let s = DG.open()+DG.turf()+DG.green(cx,cy,92,52);
+  const count = Math.min(n||6, 9);
+  for(let i=0;i<count;i++){
+    const a = (Math.PI*2*i/count) - Math.PI/2;
+    const x = cx + Math.cos(a)*118, y = cy + Math.sin(a)*66;
+    s += DG.ball(x,y);
+    s += `<path d="M${x} ${y} Q ${(x+cx)/2} ${(y+cy)/2 - 22} ${cx} ${cy}" fill="none" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>`;
+  }
+  s += DG.flag(cx,cy);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">${count} different spots around the green</text>`;
+  return s+DG.close();
+}
+/* a fairway corridor to keep tee shots inside */
+function dgCorridor(widthLabel){
+  let s = DG.open()+DG.turf();
+  s += `<path d="M120 168 L92 20 L228 20 L200 168 Z" fill="var(--fairway)" opacity=".14"/>`;
+  s += `<line x1="120" y1="168" x2="92" y2="20" stroke="var(--fairway)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += `<line x1="200" y1="168" x2="228" y2="20" stroke="var(--fairway)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += DG.ball(160,150);
+  s += `<line x1="160" y1="144" x2="160" y2="30" stroke="var(--danger)" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+  if(widthLabel) s += `<text x="160" y="16" class="dgl" text-anchor="middle">${widthLabel}</text>`;
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Score every ball as in or out of the corridor</text>`;
+  return s+DG.close();
+}
+/* low / medium / high flights to the same target — trajectory and flight-control drills */
+function dgTrajectory(){
+  let s = DG.open()+DG.turf();
+  s += `<rect x="0" y="122" width="320" height="48" rx="10" fill="var(--fairway)" opacity=".14"/>`;
+  s += DG.you(38,120);
+  const arcs=[[54,'low'],[86,'mid'],[118,'high']];
+  arcs.forEach(([lift,lbl],i)=>{
+    s += `<path d="M52 116 Q 160 ${116-lift} 252 116" fill="none" stroke="${i===2?'var(--danger)':'var(--fairway)'}" stroke-width="1.6" stroke-dasharray="4 3" opacity="${0.5+i*0.2}"/>`;
+    s += `<text x="150" y="${116-lift+ (i===0?14:10)}" class="dgl" text-anchor="middle">${lbl}</text>`;
+  });
+  s += DG.flag(252,116);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Same target, three different flights</text>`;
+  return s+DG.close();
+}
+/* side-on view of the sand — entry point drills */
+function dgBunkerSection(){
+  let s = DG.open()+DG.turf();
+  s += `<path d="M0 96 Q 60 66 118 96 L118 150 L0 150 Z" fill="var(--flag)" opacity=".30"/>`;
+  s += `<path d="M118 96 Q 200 60 320 74 L320 150 L118 150 Z" fill="var(--flag)" opacity=".22"/>`;
+  s += `<path d="M0 96 Q 90 62 200 66 Q 270 68 320 78" fill="none" stroke="var(--flag-dark)" stroke-width="2"/>`;
+  s += `<rect x="0" y="96" width="320" height="54" fill="var(--flag)" opacity=".18"/>`;
+  s += DG.ball(176,60);
+  s += `<line x1="148" y1="46" x2="148" y2="96" stroke="var(--danger)" stroke-width="2" stroke-dasharray="4 3"/>`;
+  s += `<text x="148" y="40" class="dgl" text-anchor="middle">enter here</text>`;
+  s += `<path d="M120 34 Q 150 78 214 44" fill="none" stroke="var(--fairway)" stroke-width="1.8"/>`;
+  s += `<line x1="150" y1="72" x2="174" y2="72" stroke="var(--ink)" stroke-width="1" opacity=".6"/>`;
+  s += `<text x="162" y="86" class="dgl" text-anchor="middle">≈2 in</text>`;
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Hit the sand, never the ball</text>`;
+  return s+DG.close();
+}
+/* ball, start line and the curve — read and start-line drills */
+function dgStartLine(){
+  let s = DG.open()+DG.turf()+DG.green(160,84,146,64);
+  s += DG.ball(48,110);
+  s += `<line x1="56" y1="108" x2="212" y2="54" stroke="var(--fairway)" stroke-width="1.4" stroke-dasharray="5 4"/>`;
+  s += `<text x="128" y="72" class="dgl" text-anchor="middle">start line</text>`;
+  s += `<circle cx="212" cy="54" r="4" fill="var(--flag)"/><text x="212" y="44" class="dgl" text-anchor="middle">apex</text>`;
+  s += `<path d="M56 108 Q 170 46 258 92" fill="none" stroke="var(--danger)" stroke-width="1.8"/>`;
+  s += DG.hole(258,92);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Pick the apex, start the ball on your line</text>`;
+  return s+DG.close();
+}
+/* nine windows / ball-flight control grid */
+function dgWindows(){
+  let s = DG.open()+DG.turf();
+  const x0=96, y0=26, w=42, h=30;
+  const rows=['high','mid','low'], cols=['left','centre','right'];
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++){
+    const cx=x0+c*w, cy=y0+r*h;
+    s += `<rect x="${cx}" y="${cy}" width="${w-4}" height="${h-4}" rx="4" fill="none" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`;
+  }
+  s += `<rect x="${x0+w}" y="${y0+h}" width="${w-4}" height="${h-4}" rx="4" fill="var(--flag)" opacity=".35"/>`;
+  rows.forEach((r,i)=>s+=`<text x="${x0-8}" y="${y0+i*h+18}" class="dgl" text-anchor="end">${r}</text>`);
+  cols.forEach((c,i)=>s+=`<text x="${x0+i*w+19}" y="${y0+3*h+8}" class="dgl" text-anchor="middle">${c}</text>`);
+  s += DG.you(40,116);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Nine windows — call one, then hit it</text>`;
+  return s+DG.close();
+}
+/* three tee heights */
+function dgTeeHeights(){
+  let s = DG.open()+DG.turf();
+  s += `<rect x="0" y="112" width="320" height="58" rx="10" fill="var(--fairway)" opacity=".14"/>`;
+  [['low',20],['normal',34],['high',48]].forEach(([lbl,hh],i)=>{
+    const x=90+i*72;
+    s += `<line x1="${x}" y1="112" x2="${x}" y2="${112-hh}" stroke="var(--fairway)" stroke-width="3"/>`;
+    s += DG.ball(x,112-hh-5);
+    s += `<text x="${x}" y="130" class="dgl" text-anchor="middle">${lbl}</text>`;
+  });
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Same swing, different tee heights</text>`;
+  return s+DG.close();
+}
+/* clock-face swing lengths for wedge distance control */
+function dgSwingLengths(){
+  const cx=160, cy=96, r=54;
+  let s = DG.open()+DG.turf();
+  s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 4" opacity=".6"/>`;
+  const marks=[[-135,'7:30'],[-180,'9:00'],[-225,'10:30']];
+  marks.forEach(([deg,lbl])=>{
+    const a=deg*Math.PI/180;
+    const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+    s += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--fairway)" stroke-width="2"/>`;
+    s += `<circle cx="${x}" cy="${y}" r="4.5" fill="var(--flag)"/>`;
+    s += `<text x="${x + (deg===-180?-16:0)}" y="${y-9}" class="dgl" text-anchor="middle">${lbl}</text>`;
+  });
+  s += DG.ball(cx,cy+r-4);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Change the swing length, keep the tempo</text>`;
+  return s+DG.close();
+}
+/* a target with left / right miss zones */
+function dgTargetZones(){
+  let s = DG.open()+DG.turf();
+  s += `<rect x="0" y="120" width="320" height="50" rx="10" fill="var(--fairway)" opacity=".14"/>`;
+  s += DG.you(38,140);
+  s += `<rect x="126" y="34" width="70" height="72" rx="6" fill="var(--fairway)" opacity=".16" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 3"/>`;
+  s += `<rect x="70" y="34" width="52" height="72" rx="6" fill="none" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>`;
+  s += `<rect x="200" y="34" width="52" height="72" rx="6" fill="none" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>`;
+  s += `<text x="96" y="118" class="dgl" text-anchor="middle">miss left</text>`;
+  s += `<text x="161" y="118" class="dgl" text-anchor="middle">target</text>`;
+  s += `<text x="226" y="118" class="dgl" text-anchor="middle">miss right</text>`;
+  s += DG.flag(161,90);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Know where your miss goes</text>`;
+  return s+DG.close();
+}
+/* chip from off the green to the hole */
+function dgChipToHole(){
+  let s = DG.open()+DG.turf()+DG.green(206,84,104,52);
+  s += DG.you(42,104);
+  s += `<path d="M58 98 Q 126 30 176 82" fill="none" stroke="var(--danger)" stroke-width="1.8" stroke-dasharray="4 3"/>`;
+  s += `<circle cx="176" cy="82" r="13" fill="none" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="2 3"/>`;
+  s += DG.tee(176,82,'land here');
+  s += `<line x1="182" y1="84" x2="236" y2="88" stroke="var(--fairway)" stroke-width="1.4"/>`;
+  s += DG.flag(244,88);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Land it on your spot, let it run to the hole</text>`;
+  return s+DG.close();
+}
+/* a straight putt with the stroke path — the plain putting default */
+function dgPuttStroke(){
+  let s = DG.open()+DG.turf()+DG.green(160,86,148,62);
+  s += DG.ball(66,86);
+  s += `<line x1="66" y1="66" x2="66" y2="106" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/>`;
+  s += `<line x1="74" y1="86" x2="240" y2="86" stroke="var(--danger)" stroke-width="1.8" stroke-dasharray="5 4"/>`;
+  s += DG.tee(150,74); s += DG.tee(150,98);
+  s += `<text x="150" y="60" class="dgl" text-anchor="middle">gate (optional)</text>`;
+  s += DG.hole(250,86);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Square face, ball starts on line</text>`;
+  return s+DG.close();
+}
+
+/* one row of windows — shaping the ball left / straight / right */
+function dgWindowsRow(){
+  let s = DG.open()+DG.turf();
+  const y=52, w=54, x0=88;
+  ['draw','straight','cut'].forEach((lbl,i)=>{
+    const x=x0+i*w;
+    s += `<rect x="${x}" y="${y}" width="${w-6}" height="44" rx="5" fill="${i===1?'var(--flag)':'none'}" fill-opacity="${i===1?'.30':'0'}" stroke="var(--fairway)" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+    s += `<text x="${x+(w-6)/2}" y="${y-8}" class="dgl" text-anchor="middle">${lbl}</text>`;
+  });
+  s += DG.flag(x0+w+ (w-6)/2, 136);
+  s += DG.you(40,130);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Same pin — move the ball left and right</text>`;
+  return s+DG.close();
+}
+/* one column of windows — flighting the ball low / mid / high */
+function dgWindowsCol(){
+  let s = DG.open()+DG.turf();
+  const x=132, h=28, y0=14;
+  ['high','mid','low'].forEach((lbl,i)=>{
+    const y=y0+i*h;
+    s += `<rect x="${x}" y="${y}" width="56" height="${h-5}" rx="5" fill="${i===1?'var(--flag)':'none'}" fill-opacity="${i===1?'.30':'0'}" stroke="var(--fairway)" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+    s += `<text x="${x-8}" y="${y+17}" class="dgl" text-anchor="end">${lbl}</text>`;
+  });
+  s += DG.flag(160,138);
+  s += DG.you(46,132);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">Same pin — move the ball up and down</text>`;
+  return s+DG.close();
+}
+/* random called yardages — pitching to a number you don't know in advance */
+function dgRandomNumbers(){
+  let s = DG.open()+DG.turf();
+  s += `<rect x="0" y="122" width="320" height="48" rx="10" fill="var(--fairway)" opacity=".12"/>`;
+  s += DG.you(34,142);
+  const pts=[[92,86,'37'],[136,52,'71'],[186,94,'48'],[232,60,'83'],[276,100,'55']];
+  pts.forEach(([x,y,v],i)=>{
+    s += `<path d="M46 136 Q ${(46+x)/2} ${y-44} ${x} ${y+6}" fill="none" stroke="var(--danger)" stroke-width="1" stroke-dasharray="3 3" opacity=".4"/>`;
+    s += `<circle cx="${x}" cy="${y}" r="13" fill="none" stroke="var(--fairway)" stroke-width="1.1" stroke-dasharray="2 3"/>`;
+    s += `<circle cx="${x}" cy="${y}" r="5" fill="var(--flag)"/>`;
+    s += `<text x="${x}" y="${y-18}" class="dgl" text-anchor="middle">${v} yds</text>`;
+  });
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">A new number called every ball — never the same twice</text>`;
+  return s+DG.close();
+}
+/* one wedge, three set yardages, several balls at each */
+function dgMatrix(yards){
+  let s = DG.open()+DG.turf();
+  s += `<rect x="0" y="126" width="320" height="44" rx="10" fill="var(--fairway)" opacity=".12"/>`;
+  s += DG.you(32,146);
+  const n=yards.length;
+  yards.forEach((v,i)=>{
+    const x = 96 + i*84;
+    const y = 96 - i*22;
+    s += `<line x1="${x}" y1="${y+16}" x2="${x}" y2="140" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 3" opacity=".45"/>`;
+    s += `<rect x="${x-28}" y="${y-14}" width="56" height="30" rx="6" fill="var(--fairway)" opacity=".13" stroke="var(--fairway)" stroke-width="1.2"/>`;
+    for(let b=0;b<5;b++) s += DG.ball(x-20+b*10, y+1);
+    s += `<text x="${x}" y="${y-20}" class="dgl" text-anchor="middle">${v} yds</text>`;
+  });
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">One wedge, five balls to each number</text>`;
+  return s+DG.close();
+}
+
+/* Tees grouped at the four corners of the hole, one per distance — the redemption and
+   make-circuit layouts. `extra` adds a pair of longer tees sitting between two corners,
+   opposite each other. */
+function dgCorners(dists, extra, capText){
+  const cx=160, cy=84;
+  const all = extra ? dists.concat([extra]) : dists.slice();
+  const lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+  const rOf = v => (hi===lo) ? 44 : 24 + 40*((v-lo)/(hi-lo));
+  let s = DG.open()+DG.turf()+DG.green(cx,cy,142,72);
+  // faint ring per distance so the spacing reads
+  all.forEach(v=>{ const r=rOf(v);
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--fairway)" stroke-width="1" stroke-dasharray="3 4" opacity=".40"/>`; });
+  // four corners
+  [45,135,225,315].forEach(deg=>{
+    const a = deg*Math.PI/180;
+    dists.forEach(v=>{ const r=rOf(v);
+      s += DG.tee(cx+Math.cos(a)*r, cy+Math.sin(a)*r); });
+  });
+  // the opposite pair, sat between corners
+  if(extra){
+    const r=rOf(extra);
+    [0,180].forEach(deg=>{ const a=deg*Math.PI/180;
+      const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+      s += `<circle cx="${x}" cy="${y}" r="5.5" fill="var(--flag)" stroke="var(--flag-dark)" stroke-width="1.5"/>`;
+      s += `<text x="${x}" y="${y-11}" class="dgl" text-anchor="middle">${extra} ft</text>`;
+    });
+  }
+  // distance labels stacked straight up from the hole
+  dists.forEach(v=>{ const r=rOf(v);
+    s += `<text x="${cx+5}" y="${cy-r+3}" class="dgl">${v} ft</text>`; });
+  s += DG.hole(cx,cy);
+  s += `<text x="160" y="162" class="dgc" text-anchor="middle">${capText||('Tees at all four corners — '+dists.join(', ')+' ft')}</text>`;
+  return s+DG.close();
+}
+
+/* Pick the layout that matches this drill — or none at all. */
+/* Drills and whole sections that shouldn't carry a picture — a diagram only earns its place
+   when there's a layout to show. Everything here is deliberate, not a gap in the matcher. */
+const DIAG_NONE_AREAS = new Set(['driver_woods','long_irons']);
+const DIAG_NONE_IDS = new Set([
+  // mid irons
+  'tmi11','mi8','mi7','mi2','mi6',
+  // short irons
+  'si1','si3','si6',
+  // wedges
+  'w1','w2',
+  // bunker — only Bunker Landing Areas keeps one
+  'b1','b2','b3','b4','b5','b6','b7','tb1','tb3','tb4',
+  // chipping
+  'c2','c7','c16','c17','tc21','tc23','c9','c14','tc19','tc20','c15','c13','c5',
+  // putting
+  'p8','p9','p12','p20','p23','tp27','tp32','tp42'
+]);
+/* Drills whose picture is chosen by hand rather than by pattern. */
+const DIAG_FORCE = {
+  p1:  ()=>dgCorners([4,6], 9, 'Two tees each corner, plus two 9 ft redemption tees'),
+  p4:  ()=>dgCorners([10,12,15], null, 'Three tees at each of the four corners'),
+  p6:  ()=>dgCorners([4,5,6], null, 'Three tees at each of the four corners'),
+  p13: ()=>dgCorners([4,6,8], null, 'Three tees at each of the four corners'),
+  mi3:  ()=>dgWindowsRow(),
+  mi4:  ()=>dgWindowsCol(),
+  si8:  ()=>dgRandomNumbers(),
+  w4:   ()=>dgMatrix(['50','70','90']),
+  mi10: ()=>dgGate('', true),   // gate with no wording
+  si5:  ()=>dgGate('', true)
+};
+function drillDiagram(d){
+  if(!d) return '';
+  if(DIAG_NONE_AREAS.has(d.area) || DIAG_NONE_IDS.has(d.id)) return '';
+  if(DIAG_FORCE[d.id]) return DIAG_FORCE[d.id]();
+  const t = ((d.name||'')+' '+(d.setup||'')+' '+(d.repsOrTime||'')).toLowerCase();
+  const ft = diagDists(d, 'ft', 2, 60, 4);
+  const yds = diagDists(d, 'yd', 30, 220, 5);
+
+  // --- specific layouts, most distinctive first ---
+  if(/putting mirror|putting mat|putting tutor|putting board|visio/.test(t)) return dgPuttStroke();
+  if(/bunker|sand|splash|2x4|foot depth|entry/.test(t) && d.area==='bunker' && !/tees in a line|landing/.test(t))
+    return dgBunkerSection();
+  if(/nine window|9 window|horizontal ball|vertical ball|full ball control/.test(t))
+    return dgWindows();
+  if(/tee height/.test(t)) return dgTeeHeights();
+  if(/trajectory|flight down|low.{0,12}high|high shot|three swings|windows/.test(t) && d.area!=='putting')
+    return /three swings|swing length|clock/.test(t) ? dgSwingLengths() : dgTrajectory();
+  if(/start line|green reading|read the putt|apex|3-point read|breaking/.test(t) && d.area==='putting' && !/gate|2 tees|two tees/.test(t))
+    return dgStartLine();
+  if(/miss right|miss left|dispersion|tolerance/.test(t)) return dgTargetZones();
+  if(/clock|spoke|around the hole|around the cup|ring of/.test(t) && ft.length) return dgCircle(ft);
+  if(/gate|2 tees|two tees|tees about 6|putter head/.test(t))
+    return dgGate(/6\s*(in|")/.test(t) ? '6 in apart' : 'just wider than the ball');
+  if(/tees in a line|in a line about/.test(t) || (/towel/.test(t) && !/protect|lay a towel/.test(t))){
+    const gap = (t.match(/(\d+)\s*(?:ft|feet|')\s*apart/)||[])[1];
+    const from = (t.match(/(\d+)\s*yards? from/)||[])[1];
+    return dgLanding(3, gap?gap+' ft':'', from?from+' yds out':'');
+  }
+  if(/around the green/.test(t)){
+    const n = (t.match(/(\d+)\s*(?:different\s*)?(?:shots|spots)/)||[])[1];
+    return dgAroundGreen(n?+n:6);
+  }
+  if(d.area==='driver_woods' && /fairway|corridor|targets? \d+ yards apart|25 yards apart|in play/.test(t))
+    return dgCorridor(/(\d+)\s*yards? apart/.test(t) ? RegExp.$1+' yards wide' : 'imaginary fairway');
+  if(yds.length>=2 && d.area!=='putting') return dgTargets(yds.slice(0,4).map(v=>v+' yds'));
+  if(d.area==='putting' && ft.length>=2) return dgLine(ft, 'ft', /alignment stick|stick \d+/.test(t));
+  if(d.area==='putting' && ft.length===1) return dgCircle(ft);
+
+  // --- every remaining drill still gets the right picture for its part of the game ---
+  switch(d.area){
+    case 'putting':          return dgPuttStroke();
+    case 'chipping':         return dgChipToHole();
+    case 'bunker':           return dgBunkerSection();
+    case 'wedges_pitching':  return dgSwingLengths();
+    case 'driver_woods':     return dgCorridor('imaginary fairway');
+    default:                 return dgTargetZones();   // the iron sections
+  }
+}
+
+/* No AI video — instead, a search for real footage of this exact drill. */
+function watchDrill(id){
+  const d = allDrills().find(x=>x.id===id); if(!d) return;
+  const q = encodeURIComponent(d.name + ' golf drill ' + areaLabel(d.area));
+  window.open('https://www.youtube.com/results?search_query=' + q, '_blank', 'noopener');
+}
 function explainDrill(d){
   const w = AREA_WHY[d.area] || {};
   const area = areaLabel(d.area).toLowerCase();
@@ -2022,6 +2511,7 @@ function renderDrillDetail(){
   const nextD = nextId ? allDrills().find(x=>x.id===nextId) : null;
   const howTo = AREA_HOWTO[d.area] || [];
   const jargon = drillJargon(d);
+  const diagram = drillDiagram(d);
   const setupSteps = splitSteps(d.setup);
   const doSteps = splitSteps(d.repsOrTime);
   const passSteps = splitSteps(d.success);
@@ -2040,9 +2530,10 @@ function renderDrillDetail(){
   <h1 style="margin-top:8px">${escapeHtml(d.name)}${d.aiMade?' ✨':''}${d.performance?' <span class="perfbadge">🏆 Performance</span>':''}</h1>
   <p class="muted" style="font-size:14px;line-height:1.5;margin-top:6px">${escapeHtml(d.description)}</p>
   ${inPlan ? `<div class="detailflag">✓ This is in today's plan</div>` : `<button class="btn bigbtn" style="margin-top:12px" onclick="addDrillToToday('${d.id}')">+ Add to today's plan</button>`}
-  <div class="stepcard"><div class="stepcardlbl">① Set it up</div>${listOrText(setupSteps)}</div>
+  <div class="stepcard"><div class="stepcardlbl">① Set it up</div>${listOrText(setupSteps)}${diagram?`<div class="diagwrap">${diagram}<div class="diagcap">Rough layout — distances from this drill</div></div>`:''}</div>
   <div class="stepcard"><div class="stepcardlbl">② Work through it</div>${listOrText(doSteps)}${targetTweak()}${/\d/.test(d.repsOrTime||'')?'<div class="muted" style="font-size:12px;margin-top:8px">…or keep going past that until you can do it consistently.</div>':''}</div>
   <div class="stepcard" style="border-left-color:var(--flag)"><div class="stepcardlbl">③ You've passed when</div>${listOrText(passSteps)}<div class="muted" style="font-size:12px;margin-top:9px">Difficulty: ${d.difficulty}</div></div>
+  <button class="adjustbtn" style="margin-top:4px" onclick="watchDrill('${d.id}')">▶ Watch how it's done</button>
   <button class="adjustbtn" style="margin-top:4px" onclick="toggleExpand('${explainKey}')">${explainOpen?'▾':'❓'} ${explainOpen?'Hide explanation':"Still not sure? Explain this drill"}</button>
   ${explainOpen?`
     <div class="stepcard explaincard">${explainDrill(d).map(p=>'<p class="explainp">'+p+'</p>').join('')}</div>
